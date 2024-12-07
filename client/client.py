@@ -8,10 +8,10 @@ port = 65432
 user_data = {
         "ID": None,
         "Username": None,
-        "Coins": None,
+        "Balance": None,
         "RankPoints": None
 }
-new_coins = 1000
+coins = 1000
 
 def send_dict_as_json_to_server(dict_data):  # takes a dictionary
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -47,26 +47,26 @@ def update_user_data():
     user_data = send_dict_as_json_to_server(dict_data)
 
 def deposit(amount):
-    global user_data, new_coins
+    global user_data, coins
     dict_data = {"type": "deposit", "id": user_data['ID'], "amount": amount}
     response = send_dict_as_json_to_server(dict_data)
-    if response is not None and new_coins >= 0:    # if response is None the deposit failed because the coins are less than 0
-        new_coins = new_coins - amount
+    if response is not None and coins >= 0:    # if response is None the deposit failed because the Balance are less than 0
+        coins = coins - amount
     update_user_data()
 
 def withdraw(amount):
-    global user_data, new_coins
+    global user_data, coins
     dict_data = {"type": "withdraw", "id": user_data['ID'], "amount": amount}
     response = send_dict_as_json_to_server(dict_data)
-    if response is not None and new_coins >= 0:    # if response is None the deposit failed because the coins are less than 0
-        new_coins = new_coins + amount
+    if response is not None and coins >= 0:    # if response is None the deposit failed because the Balance are less than 0
+        coins = coins + amount
     update_user_data()
 
 if __name__ == "__main__":
     while True:
         print("\n")
         print(user_data)
-        print("COINS: ", new_coins)
+        print("Balance: ", coins)
         print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW")
         command = input("command: ")
 

@@ -2,8 +2,7 @@ import sqlite3
 import os
 import socket
 import json
-import socket
-import json
+
 
 class DataBaseManager:
     USERS_DB = "users.db"
@@ -22,7 +21,7 @@ class DataBaseManager:
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 Username TEXT NOT NULL UNIQUE,
                 Password TEXT NOT NULL,
-                Coins INTEGER DEFAULT 50,
+                Balance INTEGER DEFAULT 50,
                 RankPoints INTEGER DEFAULT 100
             )
         ''')
@@ -52,52 +51,57 @@ class DataBaseManager:
     def get_none_credential_data_by_id(self, id):
         try:
             self.users_cursor.execute(f'''
-                SELECT ID, Username, Coins, RankPoints FROM Users
+                SELECT ID, Username, Balance RankPoints FROM Users
                 WHERE ID = "{id}"
             ''')
             result = self.users_cursor.fetchone()
             return {
                 "ID": result[0],
                 "Username": result[1],
-                "Coins": result[2],
+                "Balance": result[2],
                 "RankPoints": result[3]
             }
         except Exception as e:
             print(f"Error getting none credential data: {e}")
             return None
 
-    def transfer_coins_by_id(self, sender_id, receiver_id, amount):     # if you would send a negative amount you could steal an infinite amount of money
+    def transfer_balance_by_id(self, sender_id, receiver_id, amount):
         sender_data = self.get_none_credential_data_by_id(sender_id)
         receiver_data = self.get_none_credential_data_by_id(receiver_id)
-        sender_coins = sender_data['Coins'] - amount
-        receiver_coins = receiver_data['Coins'] + amount
+
+        if sender_data['Balance'] - amount < 0 or amount <= 0:    # check for not valid inputs
+            return None
+
+        sender_balance = sender_data['Balance'] - amount    # calculate new bank values
+        receiver_balance = receiver_data['Balance'] + amount
 
         self.users_cursor.execute(f'''
                         UPDATE Users
-                        SET Coins = {sender_coins}
+                        SET Balance = {sender_balance}
                         WHERE ID = "{sender_id}"
                     ''')
         self.users_cursor.execute(f'''
                         UPDATE Users
-                        SET Coins = {receiver_coins}
+                        SET Balance = {receiver_balance}
                         WHERE ID = "{receiver_id}"
                     ''')
         self.users_conn.commit()
+        return True
 
-    def add_coins_by_id(self, id, amount):
-        print(f"add_coins_by_id({id}, {amount})")
+    def add_balance_by_id(self, id, amount):
+        print(f"add_balance_by_id({id}, {amount})")
         amount = int(amount)
         data = self.get_none_credential_data_by_id(id)
-        coins = data['Coins'] + amount
-        if coins < 0:
+        balance = data['Balance'] + amount
+        if balance < 0:
             return None
         self.users_cursor.execute(f'''
                         UPDATE Users
-                        SET Coins = {coins}
+                        SET Balance = {balance}
                         WHERE ID = "{id}"
                     ''')
         self.users_conn.commit()
-        return coins
+        return balance
 
     def add_ranked_points_by_id(self, id, amount):
         data = self.get_none_credential_data_by_id(id)
@@ -116,7 +120,7 @@ class DataBaseManager:
         try:
             # Fetch user details if credentials match
             self.users_cursor.execute(f'''
-                SELECT ID, Username, Coins, RankPoints FROM Users
+                SELECT ID, Username, Balance, RankPoints FROM Users
                 WHERE Username = "{name}" AND Password = "{password}"
             ''')
             result = self.users_cursor.fetchone()
@@ -124,13 +128,13 @@ class DataBaseManager:
                 return {
                     "ID": result[0],
                     "Username": result[1],
-                    "Coins": result[2],
+                    "Balance": result[2],
                     "RankPoints": result[3]
                 }
             return {    # Login failed
                 "ID": None,
                 "Username": None,
-                "Coins": None,
+                "Balance": None,
                 "RankPoints": None
             }
 
@@ -139,7 +143,7 @@ class DataBaseManager:
             return {  # Login failed
                 "ID": None,
                 "Username": None,
-                "Coins": None,
+                "Balance": None,
                 "RankPoints": None
             }
 
@@ -176,9 +180,13 @@ class Server:
                 case "getData":
                     response = self.data_base_manager.get_none_credential_data_by_id(json_data['id'])
                 case "deposit":
-                    response = self.data_base_manager.add_coins_by_id(json_data['id'], json_data['amount'])
+                    response = self.data_base_manager.add_balance_by_id(json_data['id'], json_data['amount'])
                 case "withdraw":
-                    response = self.data_base_manager.add_coins_by_id(json_data['id'], json_data['amount'] * -1)
+                    response = self.data_base_manager.add_balance_by_id(json_data['id'], json_data['amount'] * -1)
+                case "transfer":
+                    response = self.data_base_manager.transfer_balance_by_id(json_data['sender_id'],
+                                                                             json_data['receiver_id'],
+                                                                             json_data['amount'])
 
             conn.sendall(json.dumps(response).encode('utf-8'))
             conn.close()  # Close connection
