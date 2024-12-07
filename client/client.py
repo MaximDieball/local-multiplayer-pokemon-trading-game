@@ -5,6 +5,13 @@ import os
 host = '127.0.0.1'
 port = 65432
 
+user_data = {
+        "ID": None,
+        "Username": None,
+        "Coins": None,
+        "RankPoints": None
+}
+new_coins = 1000
 
 def send_dict_as_json_to_server(dict_data):  # takes a dictionary
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,33 +24,72 @@ def send_dict_as_json_to_server(dict_data):  # takes a dictionary
     client_socket.sendall(json_data.encode('utf-8'))
 
     # Receive response from the server
-    response = client_socket.recv(1024).decode('utf-8')
+    json_response = client_socket.recv(1024).decode('utf-8')
+    dict_response = json.loads(json_response)   # convert to dict
+
     client_socket.close()
-    return response
+    return dict_response     # return dict
 
 
 def login(username, password):
+    global user_data
     dict_data = {"type": "login", "username": username, "password": password}
-    return send_dict_as_json_to_server(dict_data)
+    user_data = send_dict_as_json_to_server(dict_data)
 
 
 def register(username, password):
     dict_data = {"type": "register", "username": username, "password": password}
     return send_dict_as_json_to_server(dict_data)
 
+def update_user_data():
+    global user_data
+    dict_data = {"type": "getData", "id": user_data['ID']}
+    user_data = send_dict_as_json_to_server(dict_data)
+
+def deposit(amount):
+    global user_data, new_coins
+    dict_data = {"type": "deposit", "id": user_data['ID'], "amount": amount}
+    response = send_dict_as_json_to_server(dict_data)
+    if response is not None and new_coins >= 0:    # if response is None the deposit failed because the coins are less than 0
+        new_coins = new_coins - amount
+    update_user_data()
+
+def withdraw(amount):
+    global user_data, new_coins
+    dict_data = {"type": "withdraw", "id": user_data['ID'], "amount": amount}
+    response = send_dict_as_json_to_server(dict_data)
+    if response is not None and new_coins >= 0:    # if response is None the deposit failed because the coins are less than 0
+        new_coins = new_coins + amount
+    update_user_data()
 
 if __name__ == "__main__":
     while True:
         print("\n")
-        print("COMMANDS: LOGIN, REGISTER")
+        print(user_data)
+        print("COINS: ", new_coins)
+        print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW")
         command = input("command: ")
 
         if command.lower() == "login":
             username = input("username: ")
             password = input("password: ")
-            print(login(username, password))
+            login(username, password)
 
         elif command.lower() == "register":
             username = input("username: ")
             password = input("password: ")
             print(register(username, password))
+
+        elif command.lower() == "getdata":
+            id = input("id: ")
+            update_user_data()
+
+        elif command.lower() == "deposit":
+            amount = input("amount: ")
+            deposit(int(amount))
+            update_user_data()
+
+        elif command.lower() == "withdraw":
+            amount = input("amount: ")
+            withdraw(int(amount))
+            update_user_data()
