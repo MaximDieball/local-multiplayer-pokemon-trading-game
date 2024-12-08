@@ -41,10 +41,12 @@ def register(username, password):
     dict_data = {"type": "register", "username": username, "password": password}
     return send_dict_as_json_to_server(dict_data)
 
+
 def update_user_data():
     global user_data
     dict_data = {"type": "getData", "id": user_data['ID']}
     user_data = send_dict_as_json_to_server(dict_data)
+
 
 def deposit(amount):
     global user_data, coins
@@ -54,6 +56,7 @@ def deposit(amount):
         coins = coins - amount
     update_user_data()
 
+
 def withdraw(amount):
     global user_data, coins
     dict_data = {"type": "withdraw", "id": user_data['ID'], "amount": amount}
@@ -62,34 +65,48 @@ def withdraw(amount):
         coins = coins + amount
     update_user_data()
 
+
+def transfer(receiver_id, amount):
+    global user_data
+    dict_data = {"type": "transfer", "sender_id": user_data['ID'], "receiver_id": receiver_id, "amount": amount}
+    response = send_dict_as_json_to_server(dict_data)
+    update_user_data()
+
+
 if __name__ == "__main__":
     while True:
         print("\n")
         print(user_data)
         print("Balance: ", coins)
-        print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW")
+        print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW, TRANSFER")
         command = input("command: ")
+        match command.lower():
+            case "login":
+                username = input("username: ")
+                password = input("password: ")
+                login(username, password)
 
-        if command.lower() == "login":
-            username = input("username: ")
-            password = input("password: ")
-            login(username, password)
+            case "register":
+                username = input("username: ")
+                password = input("password: ")
+                print(register(username, password))
 
-        elif command.lower() == "register":
-            username = input("username: ")
-            password = input("password: ")
-            print(register(username, password))
+            case "getdata":
+                id = input("id: ")
+                update_user_data()
 
-        elif command.lower() == "getdata":
-            id = input("id: ")
-            update_user_data()
+            case "deposit":
+                amount = input("amount: ")
+                deposit(int(amount))
+                update_user_data()
 
-        elif command.lower() == "deposit":
-            amount = input("amount: ")
-            deposit(int(amount))
-            update_user_data()
+            case "withdraw":
+                amount = input("amount: ")
+                withdraw(int(amount))
+                update_user_data()
 
-        elif command.lower() == "withdraw":
-            amount = input("amount: ")
-            withdraw(int(amount))
-            update_user_data()
+            case "transfer":
+                receiver_id = input("receiver id: ")
+                amount = input("amount: ")
+                transfer(int(receiver_id), int(amount))
+                update_user_data()

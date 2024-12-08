@@ -51,7 +51,7 @@ class DataBaseManager:
     def get_none_credential_data_by_id(self, id):
         try:
             self.users_cursor.execute(f'''
-                SELECT ID, Username, Balance RankPoints FROM Users
+                SELECT ID, Username, Balance, RankPoints FROM Users
                 WHERE ID = "{id}"
             ''')
             result = self.users_cursor.fetchone()
@@ -68,10 +68,10 @@ class DataBaseManager:
     def transfer_balance_by_id(self, sender_id, receiver_id, amount):
         sender_data = self.get_none_credential_data_by_id(sender_id)
         receiver_data = self.get_none_credential_data_by_id(receiver_id)
-
+        if not sender_data or not receiver_data:
+            return None
         if sender_data['Balance'] - amount < 0 or amount <= 0:    # check for not valid inputs
             return None
-
         sender_balance = sender_data['Balance'] - amount    # calculate new bank values
         receiver_balance = receiver_data['Balance'] + amount
 
@@ -171,7 +171,7 @@ class Server:
             json_data = json.loads(data)
             packet_type = json_data['type']
             response = None
-            print("received json_data: ", json_data)
+            print(f"RECEIVED: {json_data} FROM {addr}")
             match packet_type:
                 case "login":
                     response = self.data_base_manager.login(json_data['username'], json_data['password'])
