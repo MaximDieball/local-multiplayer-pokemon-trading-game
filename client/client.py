@@ -77,7 +77,7 @@ if __name__ == "__main__":
     while True:
         print("\n")
         print(user_data)
-        print("Balance: ", coins)
+        print("Coins: ", coins)
         print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW, TRANSFER")
         command = input("command: ")
         match command.lower():

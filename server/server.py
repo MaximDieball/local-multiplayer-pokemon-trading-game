@@ -6,6 +6,9 @@ import json
 
 class DataBaseManager:
     USERS_DB = "users.db"
+    CARD_DB = "pokemon_cards.db"
+    CARDS_OWNED_DB = "cards_owned.db"
+    PACKS_DB = "packs.db"
 
     # Check if users.db already exists
     if os.path.exists(USERS_DB):
@@ -26,6 +29,66 @@ class DataBaseManager:
             )
         ''')
         print("new users.db created")
+
+    # Check if card database exists
+    if os.path.exists(CARD_DB):
+        print("pokemon_cards.db found")
+        cards_conn = sqlite3.connect(CARD_DB)
+        cards_cursor = cards_conn.cursor()
+    else:
+        print("NO CARD DATABASE -> this will likely crash the server")
+
+    # Check if cards owned database exists
+    if os.path.exists(CARDS_OWNED_DB):
+        print("cards_owned.db found")
+        cards_owned_conn = sqlite3.connect(CARDS_OWNED_DB)
+        cards_owned_cursor = cards_owned_conn.cursor()
+    else:
+        cards_owned_conn = sqlite3.connect(CARDS_OWNED_DB)
+        cards_owned_cursor = cards_owned_conn.cursor()
+
+        users_conn.execute('''
+            CREATE TABLE CardsOwned (
+                UserID INTEGER,
+                CardID INTEGER
+            )
+        ''')
+        print("new cards_owned.db created")
+
+    # Check if cards packs database exists
+    if os.path.exists(PACKS_DB):
+        print("packs.db found")
+        packs_conn = sqlite3.connect(PACKS_DB)
+        packs_cursor = packs_conn.cursor()
+    else:
+        packs_conn = sqlite3.connect(PACKS_DB)
+        packs_cursor = packs_conn.cursor()
+
+        packs_conn.execute('''
+            CREATE TABLE Packs (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL UNIQUE,
+                Price INTEGER,
+                CommonChance INTEGER,
+                UncommonChance INTEGER,
+                RareChance INTEGER,
+                HoloRareChance INTEGER
+            )
+        ''')
+        packs_conn.execute(f'''
+            INSERT INTO Packs (Name, Price, CommonChance, UncommonChance, RareChance, HoloRareChance)
+            VALUES ("CommonPack", 200, 0.90, 0.80, 0.99, 1.00)
+        ''')    # CommonChange = 90% / UncommonChange = 8% / RareChance = 1.98% / HoloRareChance = 0.02%
+        packs_conn.execute(f'''
+            INSERT INTO Packs (Name, Price, CommonChance, UncommonChance, RareChance, HoloRareChance)
+            VALUES ("RarePack", 600, 0.60, 0.60, 0.80, 1.00)
+        ''')    # CommonChange = 60% / UncommonChange = 24% / RareChance = 12.8% / HoloRareChance = 3.2%
+        packs_conn.execute(f'''
+            INSERT INTO Packs (Name, CommonChance, UncommonChance, RareChance, HoloRareChance)
+            VALUES ("SuperRarePack", 3000, 0.40, 0.50, 0.60, 1.00)
+        ''')    # CommonChange = 40% / UncommonChange = 30% / RareChance = 18% / HoloRareChance = 12%
+
+        print("new packs.db created")
 
     def add_user(self, name, password):
         try:
