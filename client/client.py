@@ -2,7 +2,7 @@ import socket
 import json
 import os
 
-host = '127.0.0.1'
+host = '172.16.8.120'
 port = 65432
 
 user_data = {
