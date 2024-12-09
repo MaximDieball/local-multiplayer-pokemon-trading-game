@@ -217,7 +217,7 @@ class Server:
     def __init__(self):
         pass
 
-    def start(self, host='127.0.0.1', port=65432):    # starting server / infinite while loop
+    def start(self, host='0.0.0.0', port=65432):    # starting server / infinite while loop
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.bind((host, port))
         server_socket.listen()  # Start listening for incoming connections
