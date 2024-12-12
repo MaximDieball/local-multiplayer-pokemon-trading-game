@@ -2,7 +2,7 @@ import socket
 import json
 import os
 
-host = '172.16.8.120'
+host = '127.0.0.1'
 port = 65432
 
 user_data = {
@@ -72,13 +72,41 @@ def transfer(receiver_id, amount):
     response = send_dict_as_json_to_server(dict_data)
     update_user_data()
 
+def open_pack(pack_id):
+    global user_data
+    dict_data = {"type": "openPack", "user_id": user_data['ID'], "pack_id": pack_id}
+    pack = send_dict_as_json_to_server(dict_data)   # array of cards (dicts)
+    # sort the pack
+    sorted_pack = []
+    for card in pack:
+        if card[11] == "Common":
+            sorted_pack.append(card)
+    for card in pack:
+        if card[11] == "Uncommon":
+            sorted_pack.append(card)
+    for card in pack:
+        if card[11] == "Rare":
+            sorted_pack.append(card)
+    for card in pack:
+        if card[11] == "HoloRare":
+            sorted_pack.append(card)
+
+    for card in sorted_pack:
+        input(card)
+
+def get_inventory():
+    global user_data
+    dict_data = {"type": "inventory", "user_id": user_data['ID']}
+    response = send_dict_as_json_to_server(dict_data)
+    return response
+
 
 if __name__ == "__main__":
     while True:
         print("\n")
         print(user_data)
         print("Coins: ", coins)
-        print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW, TRANSFER")
+        print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW, TRANSFER, OPENPACK, INVENTORY")
         command = input("command: ")
         match command.lower():
             case "login":
@@ -110,3 +138,9 @@ if __name__ == "__main__":
                 amount = input("amount: ")
                 transfer(int(receiver_id), int(amount))
                 update_user_data()
+            case "openpack":
+                pack_id = input("pack id: ")
+                open_pack(pack_id)
+                update_user_data()
+            case "inventory":
+                print(get_inventory())
