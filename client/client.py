@@ -97,8 +97,8 @@ def open_pack(pack_id):
 def get_inventory():
     global user_data
     dict_data = {"type": "inventory", "user_id": user_data['ID']}
-    response = send_dict_as_json_to_server(dict_data)
-    return response
+    inventory = send_dict_as_json_to_server(dict_data)
+    return inventory
 
 
 if __name__ == "__main__":

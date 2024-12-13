@@ -279,13 +279,27 @@ class DataBaseManager:
         except Exception as e:
             print("Error getting cards_owned by id: ", e)
 
-    def get_cards_owned_by_user_id(self, id):
+    def get_cards_owned_by_user_id(self, user_id):  # CHAT GPT FUNCTION
         self.cards_owned_cursor.execute(f'''
             SELECT UserID, CardID FROM CardsOwned
-            WHERE UserID = "{id}"
+            WHERE UserID = "{user_id}"
         ''')
-        result = self.cards_owned_cursor.fetchone()
-        return result
+        cards_owned = self.cards_owned_cursor.fetchall()
+        user_cards = []
+
+        if cards_owned:
+            for card_user_connection in cards_owned:
+                card_id = card_user_connection[1]
+
+                self.cards_cursor.execute(f'''
+                    SELECT * FROM Cards
+                    WHERE ID = "{card_id}"
+                ''')
+                card = self.cards_cursor.fetchone()
+
+                if card:
+                    user_cards.append(card)
+        return user_cards
 
 
 
@@ -332,7 +346,7 @@ class Server:
                 case "openPack":
                     response = self.pull_cards(json_data["user_id"], json_data["pack_id"])
                 case "inventory":
-                    response = self.get_cards_owned_by_user_id(json_data["id"])
+                    response = self.data_base_manager.get_cards_owned_by_user_id(json_data["user_id"])
 
             conn.sendall(json.dumps(response).encode('utf-8'))
             conn.close()  # Close connection
