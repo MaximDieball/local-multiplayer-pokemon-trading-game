@@ -345,20 +345,24 @@ class Server:
         print(pack_data)
         cards = []
         for i in range(8):
+            print(i)
             if random.random() > pack_data["CommonChance"]:
                 if random.random() > pack_data["UncommonChance"]:
                     if random.random() > pack_data["RareChance"]:
-                        if random.random() > pack_data["HoloRareChance"]:
-                            card = self.data_base_manager.get_random_card_by_rarity("HoloRare")
-                            cards.append(card)
+                        print("HoloRare")
+                        card = self.data_base_manager.get_random_card_by_rarity("HoloRare")
+                        cards.append(card)
 
                     else:
+                        print("Rare")
                         card = self.data_base_manager.get_random_card_by_rarity("Rare")
                         cards.append(card)
                 else:
+                    print("Uncommon")
                     card = self.data_base_manager.get_random_card_by_rarity("Uncommon")
                     cards.append(card)
             else:
+                print("Common")
                 card = self.data_base_manager.get_random_card_by_rarity("Common")
                 cards.append(card)
 

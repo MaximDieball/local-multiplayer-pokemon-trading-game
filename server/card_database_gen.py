@@ -56,7 +56,9 @@ cards = [
     ("Bisaflor", "Grass", 50, 90, 4, 5, "Fire", None, 3, 120, "Rare"),
     ("Simsala", "Psychic", 40, 70, 3, 4, "Dark", None, 2, 80, "Rare"),
     ("Arktos", "Ice", 40, 80, 3, 5, "Rock", None, 2, 100, "Rare"),
-    ("Zapdos", "Electric", 40, 80, 3, 5, "Rock", "Fighting", 2, 100, "Rare")
+    ("Zapdos", "Electric", 40, 80, 3, 5, "Rock", "Fighting", 2, 100, "Rare"),
+    ("Zapdos Holo", "Electric", 40, 80, 3, 5, "Rock", "Fighting", 2, 100, "HoloRare"),
+    ("Glurak Holo", "Fire", 50, 100, 4, 5, "Water", None, 3, 120, "HoloRare")
 ]
 
 # Insert cards into the table
