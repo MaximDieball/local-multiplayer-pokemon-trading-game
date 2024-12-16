@@ -3,6 +3,7 @@ import os
 import socket
 import json
 import random
+import zlib
 
 class DataBaseManager:
     USERS_DB = "users.db"
@@ -301,7 +302,36 @@ class DataBaseManager:
                     user_cards.append(card)
         return user_cards
 
+    def transfer_card(self, sender_id, receiver_id, card_id):
+        # Check if user has the card
+        self.cards_owned_cursor.execute(f'''
+            SELECT * FROM CardsOwned
+            WHERE user_id = "{sender_id}" AND card_id = "{card_id}"
+            LIMIT 1
+        ''')
+        card = self.cards_owned_cursor.fetchone()
 
+        if not card:
+            return False  # Exit if the sender does not own the card
+
+        # Remove the card from the sender
+        self.cards_owned_cursor.execute(f'''
+            DELETE FROM CardsOwned
+            WHERE user_id = "{sender_id}" AND card_id = "{card_id}"
+            LIMIT 1
+        ''')
+
+        # Add the card to the receiver
+        self.cards_owned_cursor.execute(f'''
+            INSERT INTO CardsOwned (user_id, card_id)
+            VALUES ("{receiver_id}", "{card_id}")
+        ''')
+
+        # Commit changes to the database
+        self.cards_owned_conn.commit()
+
+        print(f"Transferred card {card_id} from user {sender_id} to user {receiver_id}.")
+        return True
 
 
 class Server:
@@ -347,8 +377,14 @@ class Server:
                     response = self.pull_cards(json_data["user_id"], json_data["pack_id"])
                 case "inventory":
                     response = self.data_base_manager.get_cards_owned_by_user_id(json_data["user_id"])
+                case "query":
+                    response = "pass"
+                case "sendCard":
+                    response = self.data_base_manager.transfer_card(json_data["user_id"], json_data["receiver_id"],
+                                                                    json_data["card_id"])
 
-            conn.sendall(json.dumps(response).encode('utf-8'))
+            compressed_data = zlib.compress(json.dumps(response).encode('utf-8'))  # compress and send data
+            conn.sendall(compressed_data)
             conn.close()  # Close connection
 
             print("send json_data: ", json.dumps(response).encode('utf-8'))

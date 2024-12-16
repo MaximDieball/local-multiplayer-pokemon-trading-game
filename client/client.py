@@ -1,6 +1,6 @@
 import socket
 import json
-import os
+import zlib
 
 host = '127.0.0.1'
 port = 65432
@@ -11,7 +11,7 @@ user_data = {
         "Balance": None,
         "RankPoints": None
 }
-coins = 1000
+coins = 3000
 
 def send_dict_as_json_to_server(dict_data):  # takes a dictionary
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,11 +24,12 @@ def send_dict_as_json_to_server(dict_data):  # takes a dictionary
     client_socket.sendall(json_data.encode('utf-8'))
 
     # Receive response from the server
-    json_response = client_socket.recv(1024).decode('utf-8')
-    dict_response = json.loads(json_response)   # convert to dict
+    compressed_response = client_socket.recv(1024*4)  # receiving compressed data
+    response = json.loads(zlib.decompress(compressed_response).decode('utf-8'))  # decompress
+    #dict_response = json.loads(response)   # json convert to dict
 
     client_socket.close()
-    return dict_response     # return dict
+    return response     # return response
 
 
 def login(username, password):
@@ -73,10 +74,25 @@ def transfer(receiver_id, amount):
     update_user_data()
 
 def open_pack(pack_id):
-    global user_data
+    global user_data, coins
+
+    if pack_id == "1":
+        if coins < 200:     # Return if the user does not have enough coins
+            return
+        coins -= 200        # Subtract price from coins
+    elif pack_id == "2":
+        if coins < 600:     # Return if the user does not have enough coins
+            return
+        coins -= 600       # Subtract price from coins
+    elif pack_id == "3":
+        if coins < 3000:    # Return if the user does not have enough coins
+            return
+        coins -= 3000       # Subtract price from coins
+    else:
+        return  # Return the pack_id does not exist
     dict_data = {"type": "openPack", "user_id": user_data['ID'], "pack_id": pack_id}
-    pack = send_dict_as_json_to_server(dict_data)   # array of cards (dicts)
-    # sort the pack
+    pack = send_dict_as_json_to_server(dict_data)   # Array of cards (dicts)
+    # Sort the pack
     sorted_pack = []
     for card in pack:
         if card[11] == "Common":
@@ -94,11 +110,32 @@ def open_pack(pack_id):
     for card in sorted_pack:
         input(card)
 
+def send_sql_query(query):
+    dict_data = {"type": "query", "query": query}
+    send_dict_as_json_to_server(dict_data)
+
 def get_inventory():
     global user_data
     dict_data = {"type": "inventory", "user_id": user_data['ID']}
     inventory = send_dict_as_json_to_server(dict_data)
-    return inventory
+    sorted_inv = []
+    for card in inventory:
+        if card[11] == "Common":
+            sorted_inv.append(card)
+    for card in inventory:
+        if card[11] == "Uncommon":
+            sorted_inv.append(card)
+    for card in inventory:
+        if card[11] == "Rare":
+            sorted_inv.append(card)
+    for card in inventory:
+        if card[11] == "HoloRare":
+            sorted_inv.append(card)
+    return sorted_inv
+
+def send_card(receiver_id, card_id):
+    dict_data = {"type": "sendCard", "user_id": user_data['ID'], "receiver_id": receiver_id, "card_id": card_id}
+    response = send_dict_as_json_to_server(dict_data)
 
 
 if __name__ == "__main__":
@@ -106,7 +143,7 @@ if __name__ == "__main__":
         print("\n")
         print(user_data)
         print("Coins: ", coins)
-        print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW, TRANSFER, OPENPACK, INVENTORY")
+        print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW, TRANSFER, OPENPACK, INVENTORY, QUERY, SEND CARD")
         command = input("command: ")
         match command.lower():
             case "login":
@@ -143,4 +180,13 @@ if __name__ == "__main__":
                 open_pack(pack_id)
                 update_user_data()
             case "inventory":
-                print(get_inventory())
+                inv = get_inventory()
+                for card in inv:
+                    print(card)
+            case "command":
+                query = input("SQL query: ")
+                send_sql_query(query)
+            case "send card":
+                receiver_id = input("receiver id: ")
+                card_id = input("card id: ")
+                send_card(receiver_id, card_id)
