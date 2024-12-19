@@ -1,13 +1,12 @@
 import sqlite3
 
-# Define database and table creation
 DB_NAME = "pokemon_cards.db"
 
-# Connect to the SQLite database
+# Connect to database
 conn = sqlite3.connect(DB_NAME)
 cursor = conn.cursor()
 
-# Create the table structure
+# Create table structure
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS Cards (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +24,7 @@ cursor.execute('''
     )
 ''')
 
-# Insert 30 real Gen 1 Pokémon cards into the table with German names and attacks
+# Insert 30 cards into the table
 cards = [
     ("Pikachu", "Electric", 10, 30, 1, 3, "Fighting", None, 1, 50, "Common"),  # Attack names not available for Pikachu
     ("Glumanda", "Fire", 10, 30, 1, 2, "Water", None, 1, 50, "Common"),
@@ -67,8 +66,8 @@ cursor.executemany('''
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ''', cards)
 
-# Commit changes and close the connection
+# Commit changes / close the connection
 conn.commit()
 conn.close()
 
-print(f"Database '{DB_NAME}' created and populated with 30 Gen 1 Pokémon cards (German names).")
+print(f"Database '{DB_NAME}' created")
