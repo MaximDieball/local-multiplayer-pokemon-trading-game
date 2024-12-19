@@ -50,7 +50,7 @@ def update_user_data():
 
 
 def deposit(amount):
-    global user_data, coins
+    global coins
     dict_data = {"type": "deposit", "id": user_data['ID'], "amount": amount}
     response = send_dict_as_json_to_server(dict_data)
     if response is not None and coins >= 0:    # if response is None the deposit failed because the Balance are less than 0
@@ -59,7 +59,7 @@ def deposit(amount):
 
 
 def withdraw(amount):
-    global user_data, coins
+    global coins
     dict_data = {"type": "withdraw", "id": user_data['ID'], "amount": amount}
     response = send_dict_as_json_to_server(dict_data)
     if response is not None and coins >= 0:    # if response is None the deposit failed because the Balance are less than 0
@@ -68,10 +68,10 @@ def withdraw(amount):
 
 
 def transfer(receiver_id, amount):
-    global user_data
     dict_data = {"type": "transfer", "sender_id": user_data['ID'], "receiver_id": receiver_id, "amount": amount}
     response = send_dict_as_json_to_server(dict_data)
     update_user_data()
+
 
 def open_pack(pack_id):
     global user_data, coins
@@ -110,12 +110,13 @@ def open_pack(pack_id):
     for card in sorted_pack:
         input(card)
 
+
 def send_sql_query(query):
     dict_data = {"type": "query", "query": query}
     send_dict_as_json_to_server(dict_data)
 
+
 def get_inventory():
-    global user_data
     dict_data = {"type": "inventory", "user_id": user_data['ID']}
     inventory = send_dict_as_json_to_server(dict_data)
     sorted_inv = []
@@ -133,9 +134,16 @@ def get_inventory():
             sorted_inv.append(card)
     return sorted_inv
 
+
 def send_card(receiver_id, card_id):
     dict_data = {"type": "sendCard", "user_id": user_data['ID'], "receiver_id": receiver_id, "card_id": card_id}
     response = send_dict_as_json_to_server(dict_data)
+
+
+def add_marketplace_entry(card_id, price):
+    dict_data = {"type": "marketplaceEntry", "user_id": user_data['ID'], "card_id": card_id, "price": price}
+    response = send_dict_as_json_to_server(dict_data)
+    return response
 
 
 if __name__ == "__main__":
@@ -143,7 +151,8 @@ if __name__ == "__main__":
         print("\n")
         print(user_data)
         print("Coins: ", coins)
-        print("COMMANDS: LOGIN, REGISTER, DEPOSIT, WITHDRAW, TRANSFER, OPENPACK, INVENTORY, QUERY, SEND CARD")
+        print("COMMANDS: LOGIN REGISTER, DEPOSIT, WITHDRAW, TRANSFER, OPENPACK, INVENTORY, QUERY,"
+              " SEND CARD, MARKETPLACE ENTRY")
         command = input("command: ")
         match command.lower():
             case "login":
@@ -190,3 +199,7 @@ if __name__ == "__main__":
                 receiver_id = input("receiver id: ")
                 card_id = input("card id: ")
                 send_card(receiver_id, card_id)
+            case "marketplace entry":
+                card_id = input("card id: ")
+                price = input("price: ")
+                add_marketplace_entry(card_id, price)
