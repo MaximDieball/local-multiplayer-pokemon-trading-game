@@ -8,6 +8,7 @@ class LoginRegisterUI(QWidget):
         super().__init__()
         self.init_ui(switch_to_main_interface_callback)
 
+
     def init_ui(self, switch_to_main_interface_callback):
         self.setFixedSize(500, 300)  # Fixed size for the Login/Register page
 
@@ -97,6 +98,7 @@ class MainInterfaceUI(QWidget):
 
         fight_button = QPushButton("Fight", self)
         fight_button.setGeometry(QRect(440, 350, 100, 30))
+        fight_button.clicked.connect(switch_to_main_search_callback)
 
 
 class MainWindow(QWidget):
@@ -129,13 +131,15 @@ class MainWindow(QWidget):
     def show_main_interface(self):
         # Switch to the Main Interface page
         self.stacked_widget.setCurrentWidget(self.main_interface_page)
+    def show_main_search(self):
+        self.stacked.widget.setCurrentWidget(self.main_search_page)
 
 class MainSearch(QWidget):
-    def __init__(self):
+    def __init__(self, switch_to_main_search_callback):
         super().__init__()
-        self.init_ui()
+        self.init_ui(switch_to_main_search_callback)
 
-    def init_ui(self):
+    def init_ui(self, switch_to_main_search_callback):
         self.setFixedSize(700, 400)
         wager_label = QLabel("Wager", self)
         wager_label.setGeometry(QRect(180,30,100,30))
