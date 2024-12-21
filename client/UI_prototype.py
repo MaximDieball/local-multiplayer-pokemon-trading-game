@@ -130,6 +130,19 @@ class MainWindow(QWidget):
         # Switch to the Main Interface page
         self.stacked_widget.setCurrentWidget(self.main_interface_page)
 
+class MainSearch(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        self.setFixedSize(700, 400)
+        wager_label = QLabel("Wager", self)
+        wager_label.setGeometry(QRect(180,30,100,30))
+
+        self.wager_label_input = QLineEdit(self)
+        self.wager_label_input.setGeometry(220,70,150,20)
+
 
 def main():
     app = QApplication(sys.argv)
