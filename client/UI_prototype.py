@@ -1,16 +1,19 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QStackedWidget, QVBoxLayout
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QRect
 
+width = 800
+height = 500
 
 class LoginRegisterUI(QWidget):
     def __init__(self, switch_to_main_interface_callback):
         super().__init__()
         self.init_ui(switch_to_main_interface_callback)
 
-
     def init_ui(self, switch_to_main_interface_callback):
-        self.setFixedSize(500, 300)  # Fixed size for the Login/Register page
+        self.setFixedSize(width, height)  # Fixed size for the Login/Register page
 
         # Login Section
         login_label = QLabel("Login", self)
@@ -56,96 +59,122 @@ class LoginRegisterUI(QWidget):
 
 
 class MainInterfaceUI(QWidget):
-    def __init__(self):
+    def __init__(self, switch_to_wager_search_callback):
         super().__init__()
-        self.init_ui()
+        self.init_ui(switch_to_wager_search_callback)
 
-    def init_ui(self):
-        self.setFixedSize(700, 400)  # Fixed size for the Main Interface page
+    def init_ui(self, switch_to_wager_search_callback):
+        self.setFixedSize(width, height)  # Fixed size for the Main Interface page
 
-        # Top Left Image
-        top_left_image = QLabel("Image", self)
-        top_left_image.setGeometry(QRect(20, 20, 60, 60))
+        # Top Left Coin Image
+        top_left_image = QLabel(self)
+        top_left_pixmap = QPixmap("images/coin.png")  # Replace with your image file path
+        top_left_image.setPixmap(top_left_pixmap)
+        top_left_image.setGeometry(QRect(0, 0, 60, 60))
+        top_left_image.setScaledContents(True)
+
+        # Top Left Coin Count
+        text_box = QLabel("coin_count", self)
+        text_box.setText("91234")
+        text_box.setAlignment(Qt.AlignRight)
+        text_box.setGeometry(QRect(60, 20, 50, 50))
 
         # Top Right Image
-        top_right_image = QLabel("Image", self)
-        top_right_image.setGeometry(QRect(620, 20, 60, 60))
+        top_right_image = QLabel(self)
+        top_right_pixmap = QPixmap("images/profile.png")  # Replace with your image file path
+        top_right_image.setPixmap(top_right_pixmap)
+        top_right_image.setGeometry(QRect(width - 100, 0, 60, 60))
+        top_right_image.setScaledContents(True)
 
         # Top Buttons
         deposit_button = QPushButton("Deposit", self)
-        deposit_button.setGeometry(QRect(220, 30, 80, 30))
+        deposit_button.setGeometry(QRect(150, 15, 80, 30))
 
         withdraw_button = QPushButton("Withdraw", self)
-        withdraw_button.setGeometry(QRect(320, 30, 80, 30))
+        withdraw_button.setGeometry(QRect(250, 15, 80, 30))
 
         send_button = QPushButton("Send", self)
-        send_button.setGeometry(QRect(420, 30, 80, 30))
+        send_button.setGeometry(QRect(350, 15, 80, 30))
 
-        # Main Image
-        main_image = QLabel("Image", self)
+        # Pokeball Image
+        main_image = QLabel(self)
+        main_image_pixmap = QPixmap("images/pokeball.png")  # Replace with your image file path
+        main_image.setPixmap(main_image_pixmap)
         main_image.setGeometry(QRect(50, 120, 200, 200))
+        main_image.setScaledContents(True)
 
-        # Text Box
-        text_box = QLabel("Text box", self)
-        text_box.setGeometry(QRect(450, 120, 200, 200))
+        # Profile Data Text Box
+        text_box = QLabel("profile_data", self)
+        text_box.setText('''
+        ID : 1234
+        Name : ADMIN
+        Balance : 300
+        RankedPoints : 100
+        ''')
+        text_box.setAlignment(Qt.AlignRight)
+        text_box.setGeometry(QRect(width - 250, 60, 200, 200))
 
-        # Bottom Buttons
+        # Middle Buttons
         open_packs_button = QPushButton("Open packs", self)
-        open_packs_button.setGeometry(QRect(220, 350, 100, 30))
+        open_packs_button.setGeometry(QRect(350, 100, 200, 100))
 
         inventory_button = QPushButton("Inventory", self)
-        inventory_button.setGeometry(QRect(330, 350, 100, 30))
+        inventory_button.setGeometry(QRect(350, 200, 200, 100))
 
         fight_button = QPushButton("Fight", self)
-        fight_button.setGeometry(QRect(440, 350, 100, 30))
-        fight_button.clicked.connect(switch_to_main_search_callback)
+        fight_button.setGeometry(QRect(350, 300, 200, 100))
+        fight_button.clicked.connect(switch_to_wager_search_callback)
 
 
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.init_ui()
-
-    def init_ui(self):
-        self.setWindowTitle('Application')
-        self.setGeometry(100, 100, 700, 400)  # Fixed window size
-        self.setFixedSize(700, 400)
-
-        # Stacked Widget to switch between pages
-        self.stacked_widget = QStackedWidget(self)
-
-        # Create the Login/Register and Main Interface pages
-        self.login_register_page = LoginRegisterUI(self.show_main_interface)
-        self.main_interface_page = MainInterfaceUI()
-
-        # Add pages to the stacked widget
-        self.stacked_widget.addWidget(self.login_register_page)
-        self.stacked_widget.addWidget(self.main_interface_page)
-
-        # Set the Login/Register page as the default
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.stacked_widget)
-
-        self.setLayout(layout)
-
-    def show_main_interface(self):
-        # Switch to the Main Interface page
-        self.stacked_widget.setCurrentWidget(self.main_interface_page)
-    def show_main_search(self):
-        self.stacked.widget.setCurrentWidget(self.main_search_page)
-
-class MainSearch(QWidget):
+class WagerSearchUI(QWidget):
     def __init__(self, switch_to_main_search_callback):
         super().__init__()
         self.init_ui(switch_to_main_search_callback)
 
     def init_ui(self, switch_to_main_search_callback):
-        self.setFixedSize(700, 400)
+        self.setFixedSize(width, height)
         wager_label = QLabel("Wager", self)
-        wager_label.setGeometry(QRect(180,30,100,30))
+        wager_label.setGeometry(QRect(180, 30, 100, 30))
 
         self.wager_label_input = QLineEdit(self)
-        self.wager_label_input.setGeometry(220,70,150,20)
+        self.wager_label_input.setGeometry(QRect(220, 70, 150, 20))
+
+
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle('Application')
+        self.setGeometry(100, 100, width, height)  # Fixed window size
+        self.setFixedSize(width, height)
+
+        # Stacked Widget to switch between pages
+        self.stacked_widget = QStackedWidget(self)
+
+        # Create the Login/Register, Main Interface, and Wager Search pages
+        self.login_register_page = LoginRegisterUI(self.show_main_interface)
+        self.main_interface_page = MainInterfaceUI(self.show_wager_search)
+        self.wager_search_page = WagerSearchUI(self.show_main_interface)
+
+        # Add pages to the stacked widget
+        self.stacked_widget.addWidget(self.login_register_page)
+        self.stacked_widget.addWidget(self.main_interface_page)
+        self.stacked_widget.addWidget(self.wager_search_page)
+
+        # Set the Login/Register page as the default
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.stacked_widget)
+        self.setLayout(layout)
+
+        self.stacked_widget.setCurrentWidget(self.login_register_page)
+
+    def show_main_interface(self):
+        # Switch to the Main Interface page
+        self.stacked_widget.setCurrentWidget(self.main_interface_page)
+
+    def show_wager_search(self):
+        # Switch to the Wager Search page
+        self.stacked_widget.setCurrentWidget(self.wager_search_page)
 
 
 def main():
