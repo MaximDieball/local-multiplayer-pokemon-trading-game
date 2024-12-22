@@ -137,7 +137,13 @@ class WagerSearchUI(QWidget):
         wager_label.setGeometry(QRect(180, 30, 100, 30))
 
         self.wager_label_input = QLineEdit(self)
-        self.wager_label_input.setGeometry(QRect(220, 70, 150, 20))
+        self.wager_label_input.setGeometry(QRect(220, 40, 150, 20))
+
+        enemy_label = QLabel("Enemy_ID", self)
+        enemy_label.setGeometry(QRect(155,60,100,93))
+
+        self.enemy_label_input = QLineEdit(self)
+        self.enemy_label_input.setGeometry(QRect(220,100,150,20))
 
 
 class MainWindow(QWidget):
