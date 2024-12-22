@@ -68,7 +68,7 @@ class MainInterfaceUI(QWidget):
 
         # Top Left Coin Image
         top_left_image = QLabel(self)
-        top_left_pixmap = QPixmap("images/coin.png")  # Replace with your image file path
+        top_left_pixmap = QPixmap("images/coin.png")  
         top_left_image.setPixmap(top_left_pixmap)
         top_left_image.setGeometry(QRect(0, 0, 60, 60))
         top_left_image.setScaledContents(True)
@@ -81,7 +81,7 @@ class MainInterfaceUI(QWidget):
 
         # Top Right Image
         top_right_image = QLabel(self)
-        top_right_pixmap = QPixmap("images/profile.png")  # Replace with your image file path
+        top_right_pixmap = QPixmap("images/profile.png") 
         top_right_image.setPixmap(top_right_pixmap)
         top_right_image.setGeometry(QRect(width - 100, 0, 60, 60))
         top_right_image.setScaledContents(True)
@@ -98,7 +98,7 @@ class MainInterfaceUI(QWidget):
 
         # Pokeball Image
         main_image = QLabel(self)
-        main_image_pixmap = QPixmap("images/pokeball.png")  # Replace with your image file path
+        main_image_pixmap = QPixmap("images/pokeball.png")
         main_image.setPixmap(main_image_pixmap)
         main_image.setGeometry(QRect(50, 120, 200, 200))
         main_image.setScaledContents(True)
