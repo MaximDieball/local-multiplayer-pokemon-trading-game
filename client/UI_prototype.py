@@ -17,44 +17,44 @@ class LoginRegisterUI(QWidget):
 
         # Login Section
         login_label = QLabel("Login", self)
-        login_label.setGeometry(QRect(80, 30, 100, 30))
+        login_label.setGeometry(QRect(int(int(width/2))-300, 30, 100, 30))
 
         login_name_label = QLabel("Name:", self)
-        login_name_label.setGeometry(QRect(50, 70, 60, 20))
+        login_name_label.setGeometry(QRect(int(int(width/2))-400, 70, 60, 20))
 
         self.login_name_input = QLineEdit(self)
-        self.login_name_input.setGeometry(QRect(120, 70, 150, 20))
+        self.login_name_input.setGeometry(QRect(int(width/2)-300, 70, 150, 20))
 
         login_password_label = QLabel("Password:", self)
-        login_password_label.setGeometry(QRect(50, 110, 60, 20))
+        login_password_label.setGeometry(QRect(int(width/2)-400, 110, 60, 20))
 
         self.login_password_input = QLineEdit(self)
-        self.login_password_input.setGeometry(QRect(120, 110, 150, 20))
+        self.login_password_input.setGeometry(QRect(int(width/2)-300, 110, 150, 20))
         self.login_password_input.setEchoMode(QLineEdit.Password)
 
         login_button = QPushButton("Login", self)
-        login_button.setGeometry(QRect(120, 150, 80, 30))
+        login_button.setGeometry(QRect(int(width/2)-300, 150, 80, 30))
         login_button.clicked.connect(switch_to_main_interface_callback)
 
         # Register Section
         register_label = QLabel("Register", self)
-        register_label.setGeometry(QRect(330, 30, 100, 30))
+        register_label.setGeometry(QRect(int(width/2)+100, 30, 100, 30))
 
         register_name_label = QLabel("Name:", self)
-        register_name_label.setGeometry(QRect(300, 70, 60, 20))
+        register_name_label.setGeometry(QRect(int(width/2)+100, 70, 60, 20))
 
         self.register_name_input = QLineEdit(self)
-        self.register_name_input.setGeometry(QRect(370, 70, 150, 20))
+        self.register_name_input.setGeometry(QRect(int(width/2)+100, 70, 150, 20))
 
         register_password_label = QLabel("Password:", self)
-        register_password_label.setGeometry(QRect(300, 110, 60, 20))
+        register_password_label.setGeometry(QRect(int(width/2)+100, 110, 60, 20))
 
         self.register_password_input = QLineEdit(self)
-        self.register_password_input.setGeometry(QRect(370, 110, 150, 20))
+        self.register_password_input.setGeometry(QRect(int(width/2)+100, 110, 150, 20))
         self.register_password_input.setEchoMode(QLineEdit.Password)
 
         register_button = QPushButton("Register", self)
-        register_button.setGeometry(QRect(370, 150, 80, 30))
+        register_button.setGeometry(QRect(int(width/2)+100, 150, 80, 30))
         register_button.clicked.connect(switch_to_main_interface_callback)
 
 
