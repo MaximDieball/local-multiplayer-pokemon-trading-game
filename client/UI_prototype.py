@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QStackedWidget, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QStackedWidget, QVBoxLayout, QDialog, QDialogButtonBox
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QRect
@@ -63,6 +63,20 @@ class MainInterfaceUI(QWidget):
         super().__init__()
         self.init_ui(switch_to_wager_search_callback)
 
+    def show_withdraw_dialog(self):
+            dialog = WithdrawDialog()
+            if dialog.exec_() == QDialog.Accepted:
+                amount = dialog.get_amount()
+                print(f"Withdrawing {amount} coins")  # You can replace this with your logic to handle the withdrawal
+                # Handle the withdrawal logic here, e.g., update balance, show confirmation, etc.
+
+    def show_deposit_dialog(self):
+            dialog = DepositDialog()
+            if dialog.exec_() == QDialog.Accepted:
+                amount = dialog.get_amount()
+                print(f"Depositing {amount} coins")  # You can replace this with your logic to handle the deposit
+                # Handle the deposit logic here, e.g., update balance, show confirmation, etc.
+
     def init_ui(self, switch_to_wager_search_callback):
         self.setFixedSize(width, height)  # Fixed size for the Main Interface page
 
@@ -89,9 +103,11 @@ class MainInterfaceUI(QWidget):
         # Top Buttons
         deposit_button = QPushButton("Deposit", self)
         deposit_button.setGeometry(QRect(150, 15, 80, 30))
+        deposit_button.clicked.connect(self.show_deposit_dialog)
 
         withdraw_button = QPushButton("Withdraw", self)
         withdraw_button.setGeometry(QRect(250, 15, 80, 30))
+        withdraw_button.clicked.connect(self.show_withdraw_dialog)
 
         send_button = QPushButton("Send", self)
         send_button.setGeometry(QRect(350, 15, 80, 30))
@@ -188,6 +204,61 @@ def main():
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec_())
+
+class WithdrawDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Withdraw Amount")
+        self.setFixedSize(300, 150)
+
+        layout = QVBoxLayout()
+
+        # Label and input for withdraw amount
+        self.label = QLabel("Enter the amount to withdraw:", self)
+        layout.addWidget(self.label)
+
+        self.amount_input = QLineEdit(self)
+        layout.addWidget(self.amount_input)
+
+        # Buttons for confirming or cancelling
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+        self.setLayout(layout)
+
+    def get_amount(self):
+        return self.amount_input.text()
+
+class DepositDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Deposit Amount")
+        self.setFixedSize(300, 150)
+
+        layout = QVBoxLayout()
+
+        # Label and input for withdraw amount
+        self.label = QLabel("Enter the amount to deposit:", self)
+        layout.addWidget(self.label)
+
+        self.amount_input = QLineEdit(self)
+        layout.addWidget(self.amount_input)
+
+        # Buttons for confirming or cancelling
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+        self.setLayout(layout)
+
+    def get_amount(self):
+        return self.amount_input.text()
+
+
+
 
 
 if __name__ == '__main__':
