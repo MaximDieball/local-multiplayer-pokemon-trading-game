@@ -77,6 +77,12 @@ class MainInterfaceUI(QWidget):
                 print(f"Depositing {amount} coins")  # You can replace this with your logic to handle the deposit
                 # Handle the deposit logic here, e.g., update balance, show confirmation, etc.
 
+    def show_send_dialog(self):
+        dialog = SendDialog()
+        if dialog.exec_() == QDialog.Accepted:
+            player_id, amount = dialog.get_data()
+            print(f"Sending {amount} coins to player ID {player_id}")  # Here we have to replace this with our actual logic.
+
     def init_ui(self, switch_to_wager_search_callback):
         self.setFixedSize(width, height)  # Fixed size for the Main Interface page
 
@@ -111,6 +117,7 @@ class MainInterfaceUI(QWidget):
 
         send_button = QPushButton("Send", self)
         send_button.setGeometry(QRect(350, 15, 80, 30))
+        send_button.clicked.connect(self.show_send_dialog)
 
         # Pokeball Image
         main_image = QLabel(self)
@@ -257,6 +264,40 @@ class DepositDialog(QDialog):
     def get_amount(self):
         return self.amount_input.text()
 
+class SendDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Send Coins")
+        self.setFixedSize(300, 200)
+
+        layout = QVBoxLayout()
+
+        # Label und Eingabe für Spieler-ID
+        self.player_id_label = QLabel("Enter the Player ID:", self)
+        layout.addWidget(self.player_id_label)
+
+        self.player_id_input = QLineEdit(self)
+        layout.addWidget(self.player_id_input)
+
+        # Label und Eingabe für die Summe
+        self.amount_label = QLabel("Enter the amount to send:", self)
+        layout.addWidget(self.amount_label)
+
+        self.amount_input = QLineEdit(self)
+        layout.addWidget(self.amount_input)
+
+        # Buttons for Yes/No
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+        self.setLayout(layout)
+
+    def get_data(self):
+        player_id = self.player_id_input.text()
+        amount = self.amount_input.text()
+        return player_id, amount
 
 
 
