@@ -2,7 +2,7 @@ import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
     QStackedWidget, QVBoxLayout, QDialog, QDialogButtonBox,
-    QHBoxLayout, QFormLayout
+    QHBoxLayout, QFormLayout, QGridLayout, QScrollArea
 )
 from PyQt5.QtGui import QPixmap, QTransform
 from PyQt5.QtCore import Qt, QRect
@@ -18,7 +18,6 @@ class LoginRegisterUI(QWidget):
         self.init_ui(on_login_success_callback)
 
     def init_ui(self, on_login_success_callback):
-        # Keep your original geometry for the login/register UI
         w, h = 800, 400
         self.setFixedSize(w, h)
 
@@ -85,8 +84,6 @@ class TopBar(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        # We’ll do everything with absolute coordinates in this top bar
-        # The width is inherited from the parent, but we can read it at runtime
         bar_width = self.parent_widget.width()
         self.setFixedWidth(bar_width)
 
@@ -104,26 +101,25 @@ class TopBar(QWidget):
 
         # Deposit button
         self.deposit_button = QPushButton("Deposit", self)
-        self.deposit_button.setGeometry(150 + 40, 25, 80, 30)
+        self.deposit_button.setGeometry(190, 25, 80, 30)
         self.deposit_button.clicked.connect(self.parent_widget.show_deposit_dialog)
 
         # Withdraw button
         self.withdraw_button = QPushButton("Withdraw", self)
-        self.withdraw_button.setGeometry(240 + 40, 25, 80, 30)
+        self.withdraw_button.setGeometry(280, 25, 80, 30)
         self.withdraw_button.clicked.connect(self.parent_widget.show_withdraw_dialog)
 
         # Send coins button
         self.send_coins_button = QPushButton("Send coins", self)
-        self.send_coins_button.setGeometry(330 + 40, 25, 80, 30)
+        self.send_coins_button.setGeometry(370, 25, 80, 30)
         self.send_coins_button.clicked.connect(self.parent_widget.show_send_coins_dialog)
 
         # Send cards button
         self.send_cards_button = QPushButton("Send cards", self)
-        self.send_cards_button.setGeometry(420 + 40, 25, 80, 30)
+        self.send_cards_button.setGeometry(460, 25, 80, 30)
         self.send_cards_button.clicked.connect(self.parent_widget.show_send_cards_dialog)
 
         # User data label
-        # Possibly multiline, so let's give it a bigger height
         self.user_data_label = QLabel("""
                                         ID : 1234
                                         Name : ADMIN
@@ -147,41 +143,42 @@ class MainPage(QWidget):
     main page
     with (pokeball, open packs, inventory, wager)
     """
-    def __init__(self, switch_to_wager_page_callback):
+    def __init__(self, switch_to_wager_page_callback, switch_to_open_packs_page_callback, switch_to_inventory_page_callback):
         super().__init__()
         self.switch_to_wager_page_callback = switch_to_wager_page_callback
+        self.switch_to_open_packs_page_callback = switch_to_open_packs_page_callback
+        self.switch_to_inventory_page_callback = switch_to_inventory_page_callback
         self.init_ui()
 
     def init_ui(self):
-        self.setFixedSize(width, height - 80)  # minus the top bar's height
+        self.setFixedSize(width, height - 80)
 
         # Pokeball Image
         self.pokeball_label = QLabel(self)
         pokeball_pixmap = QPixmap("images/pokeball.png")
         self.pokeball_label.setPixmap(pokeball_pixmap)
         self.pokeball_label.setScaledContents(True)
-        # (x=50, y=40, width=200, height=200)
         self.pokeball_label.setGeometry(QRect(50, 40, 200, 200))
 
         # Pointer Image
         self.pointer_label = QLabel(self)
         pointer_pixmap = QPixmap("images/pointer.png")
-        # Rotate by 45 degrees
         transform = QTransform()
         transform.rotate(-45)
         rotated_pointer = pointer_pixmap.transformed(transform, Qt.SmoothTransformation)
         self.pointer_label.setPixmap(rotated_pointer)
         self.pointer_label.setScaledContents(True)
-        # Place it just to the right of the Pokéball, e.g., (x=260, y=40), 50x50
         self.pointer_label.setGeometry(QRect(180, 180, 50, 50))
 
         # Open packs
         self.open_packs_button = QPushButton("Open packs", self)
         self.open_packs_button.setGeometry(QRect(350, 20, 200, 100))
+        self.open_packs_button.clicked.connect(self.switch_to_open_packs_page_callback)
 
         # Inventory
         self.inventory_button = QPushButton("Inventory", self)
         self.inventory_button.setGeometry(QRect(350, 120, 200, 100))
+        self.inventory_button.clicked.connect(self.switch_to_inventory_page_callback)
 
         # Wager
         self.wager_button = QPushButton("Wager", self)
@@ -189,40 +186,110 @@ class MainPage(QWidget):
         self.wager_button.clicked.connect(self.switch_to_wager_page_callback)
 
 
-# ------------------------------ WagerSearchPage ------------------------------ #
-class WagerSearchPage(QWidget):
+# ------------------------------ OpenPacksPage ------------------------------ #
+class OpenPacksPage(QWidget):
     """
-    The page that asks for Enemy Player ID, Stake, has a Search button,
-    and a Go Back button.
+    Page with three tall buttons: "Pack 1", "Pack 2", "Pack 3"
+    next to each other, plus a back button at the bottom-left.
     """
-
     def __init__(self, switch_to_main_page_callback):
         super().__init__()
         self.switch_to_main_page_callback = switch_to_main_page_callback
         self.init_ui()
 
     def init_ui(self):
-        self.setFixedSize(width, height - 80)  # minus top bar height
+        self.setFixedSize(width, height - 80)
 
-        # Enemy Player ID
+        self.pack1_button = QPushButton("Pack 1", self)
+        self.pack1_button.setGeometry(200, 100, 80, 130)
+
+        self.pack2_button = QPushButton("Pack 2", self)
+        self.pack2_button.setGeometry(320, 100, 80, 130)
+
+        self.pack3_button = QPushButton("Pack 3", self)
+        self.pack3_button.setGeometry(440, 100, 80, 130)
+
+        self.back_button = QPushButton("<---", self)
+        self.back_button.setGeometry(9, 320, 80, 30)
+        self.back_button.clicked.connect(self.switch_to_main_page_callback)
+
+
+# ------------------------------ InventoryPage ------------------------------ #
+class InventoryPage(QWidget):
+    """
+    scrollable page showing inventory (not finished).
+    """
+    def __init__(self, switch_to_main_page_callback):
+        super().__init__()
+        self.switch_to_main_page_callback = switch_to_main_page_callback
+        self.init_ui()
+
+    def init_ui(self):
+        self.setFixedSize(width, height - 80)
+
+        # Box layout
+        main_layout = QVBoxLayout(self)
+        self.setLayout(main_layout)
+
+        # Scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        main_layout.addWidget(scroll_area)
+
+        # Container widget / holding more widgets
+        container = QWidget()
+        grid_layout = QGridLayout(container)
+        container.setLayout(grid_layout)
+
+        # Add 30 placeholders
+        for i in range(30):
+            label = QLabel(f"item {i+1}")
+            label.setStyleSheet(
+                "border: 1px solid gray; background: white; min-width:80px; min-height:80px;"
+                "margin: 5px; "
+            )
+            row = i // 5
+            col = i % 5
+            grid_layout.addWidget(label, row, col)
+
+        # put container inside the scroll area
+        scroll_area.setWidget(container)
+
+        # back button
+        self.back_button = QPushButton("<---")
+        self.back_button.clicked.connect(self.switch_to_main_page_callback)
+        main_layout.addWidget(self.back_button)
+
+
+# ------------------------------ WagerSearchPage ------------------------------ #
+class WagerSearchPage(QWidget):
+    """
+    Wager Search Page with input for Enemy Player ID, Stake
+    and back button
+    """
+    def __init__(self, switch_to_main_page_callback):
+        super().__init__()
+        self.switch_to_main_page_callback = switch_to_main_page_callback
+        self.init_ui()
+
+    def init_ui(self):
+        self.setFixedSize(width, height - 80)
+
         self.enemy_label = QLabel("Enemy Player ID:", self)
         self.enemy_label.setGeometry(289, 150 - 30, 90, 25)
 
         self.enemy_input = QLineEdit(self)
         self.enemy_input.setGeometry(378, 150 - 30, 120, 25)
 
-        # Stake
         self.stake_label = QLabel("Stake:", self)
         self.stake_label.setGeometry(289, 204 - 30, 90, 25)
 
         self.stake_input = QLineEdit(self)
         self.stake_input.setGeometry(378, 204 - 30, 120, 25)
 
-        # Search button
         self.search_button = QPushButton("Search", self)
         self.search_button.setGeometry(363, 300, 80, 30)
 
-        # Go Back
         self.back_button = QPushButton("<---", self)
         self.back_button.setGeometry(9, 320, 80, 30)
         self.back_button.clicked.connect(self.switch_to_main_page_callback)
@@ -231,7 +298,7 @@ class WagerSearchPage(QWidget):
 # ------------------------------ MainWidget ------------------------------ #
 class MainWidget(QWidget):
     """
-    This widget holds:
+     widget holds:
       - always visible top-bar (coins count, withdraw button, deposit button, send buttons, account data).
       - QStackedWidget showing changing pages
     """
@@ -243,7 +310,6 @@ class MainWidget(QWidget):
     def init_ui(self):
         self.setFixedSize(width, height)
 
-        # Overall layout: vertical
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
@@ -252,16 +318,25 @@ class MainWidget(QWidget):
         self.top_bar = TopBar(self)
         layout.addWidget(self.top_bar)
 
-        # 2) Center QStackedWidget for main page vs. wager search
+        # 2) center QStackedWidget for main, wager, open packs, inventory
         self.center_stack = QStackedWidget(self)
         layout.addWidget(self.center_stack)
 
-        # Create the two pages
-        self.main_page = MainPage(self.show_wager_page)
+        # create pages
+        self.main_page = MainPage(
+            self.show_wager_page,        # Wager
+            self.show_open_packs_page,   # Open packs
+            self.show_inventory_page     # Inventory
+        )
         self.wager_page = WagerSearchPage(self.show_main_page)
+        self.open_packs_page = OpenPacksPage(self.show_main_page)
+        self.inventory_page = InventoryPage(self.show_main_page)
 
-        self.center_stack.addWidget(self.main_page)  # index 0
-        self.center_stack.addWidget(self.wager_page)  # index 1
+        # Add to stack / QStackedWidget
+        self.center_stack.addWidget(self.main_page)       # index 0
+        self.center_stack.addWidget(self.wager_page)      # index 1
+        self.center_stack.addWidget(self.open_packs_page) # index 2
+        self.center_stack.addWidget(self.inventory_page)  # index 3
 
         self.center_stack.setCurrentWidget(self.main_page)
 
@@ -297,13 +372,17 @@ class MainWidget(QWidget):
     def show_wager_page(self):
         self.center_stack.setCurrentWidget(self.wager_page)
 
+    def show_open_packs_page(self):
+        self.center_stack.setCurrentWidget(self.open_packs_page)
+
+    def show_inventory_page(self):
+        self.center_stack.setCurrentWidget(self.inventory_page)
+
 
 # ------------------------------ MainWindow ------------------------------ #
 class MainWindow(QWidget):
     """
-    The MainWindow has a QStackedWidget that toggles between:
-      - The LoginRegisterUI (page 0)
-      - The MainWidget (page 1), which contains TopBar + center stack
+        Main Window lol lol lol
     """
 
     def __init__(self):
@@ -315,15 +394,15 @@ class MainWindow(QWidget):
         # Stacked widget at the top level
         self.stacked_widget = QStackedWidget(self)
 
-        # Create login/register page
+        # Page 0: login/register
         self.login_register_page = LoginRegisterUI(self.show_main_widget)
-        # Create main widget (top bar + center content)
+        # Page 1: main widget with top bar + center pages
         self.main_widget_page = MainWidget()
 
         self.stacked_widget.addWidget(self.login_register_page)  # index 0
-        self.stacked_widget.addWidget(self.main_widget_page)  # index 1
+        self.stacked_widget.addWidget(self.main_widget_page)      # index 1
 
-        # Use a layout for the MainWindow so the stacked widget fills it
+        # Fill out layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(self.stacked_widget)
@@ -345,7 +424,6 @@ class WithdrawDialog(QDialog):
         self.setFixedSize(300, 150)
 
         layout = QVBoxLayout()
-
         label = QLabel("Enter the amount to withdraw:", self)
         layout.addWidget(label)
 
@@ -370,7 +448,6 @@ class DepositDialog(QDialog):
         self.setFixedSize(300, 150)
 
         layout = QVBoxLayout()
-
         label = QLabel("Enter the amount to deposit:", self)
         layout.addWidget(label)
 
@@ -388,7 +465,6 @@ class DepositDialog(QDialog):
         return self.amount_input.text()
 
 
-# -------------- NEW: SendCoinsDialog and SendCardsDialog -------------- #
 class SendCoinsDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -429,7 +505,6 @@ class SendCardsDialog(QDialog):
         self.setFixedSize(300, 200)
 
         layout = QVBoxLayout()
-
         player_id_label = QLabel("Enter the Player ID:", self)
         layout.addWidget(player_id_label)
 

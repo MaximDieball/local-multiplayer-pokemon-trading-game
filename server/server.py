@@ -166,7 +166,7 @@ class DataBaseManager:
             ''')
             result = self.users_cursor.fetchone()
 
-            # Return the user's data if found
+            # Return the users data if found
             if result:
                 return {
                     "ID": result[0],
@@ -200,29 +200,29 @@ class DataBaseManager:
             sender_data = self.get_none_credential_data_by_id(sender_id)
             receiver_data = self.get_none_credential_data_by_id(receiver_id)
 
-            # Validate that both users exist
+            # Error handling
             if not sender_data or not receiver_data:
                 print(f"Error: Sender ID {sender_id} or Receiver ID {receiver_id} not found.")
                 return None
 
-            # Validate transfer conditions
+            # check transfer conditions
             if sender_data['Balance'] - amount < 0 or amount <= 0:
                 print(
-                    f"Error: Invalid transfer amount. Sender's balance: {sender_data['Balance']}, Attempted transfer: {amount}")
+                    f"Error: Invalid transfer amount. Senders balance: {sender_data['Balance']}, Attempted transfer: {amount}")
                 return None
 
             # Calculate new balances
             sender_balance = sender_data['Balance'] - amount
             receiver_balance = receiver_data['Balance'] + amount
 
-            # Update sender's balance in the database
+            # Update senders balance in the database
             self.users_cursor.execute(f'''
                 UPDATE Users
                 SET Balance = {sender_balance}
                 WHERE ID = "{sender_id}"
             ''')
 
-            # Update receiver's balance in the database
+            # Update receivers balance in the database
             self.users_cursor.execute(f'''
                 UPDATE Users
                 SET Balance = {receiver_balance}
@@ -291,7 +291,7 @@ class DataBaseManager:
             amount (int): The number of ranked points to add (can be negative to deduct points).
 
         Returns:
-            int: The updated ranked points if successful, or None if the operation fails.
+            int: The updated ranked points if successful or None if the operation fails.
         """
         try:
             # Retrieve the user's current data
@@ -331,8 +331,8 @@ class DataBaseManager:
             password (str): The password of the user.
 
         Returns:
-            dict: A dictionary containing user details if login is successful,
-                  or a dictionary with None values if login fails.
+            dict: A dictionary containing user details if login is successful
+                  else a dictionary with None values if login fails.
         """
         try:
             # Query the Users table to validate credentials
@@ -438,7 +438,7 @@ class DataBaseManager:
             return random_card  # Return the randomly selected card
 
         except Exception as e:
-            # Handle any exception that occurs during the query or random selection
+            # Error handling
             print("Error picking a random card: ", e)
             return {
                 "Name": "No Card Found",
@@ -455,7 +455,7 @@ class DataBaseManager:
             card_id (int): ID of the card to be added.
 
         Returns:
-            bool: True if the card is successfully added, else False.
+            bool: True if the card is successfully added else False.
         """
         try:
             # Insert a new record into the CardsOwned table with the given user ID and card ID
@@ -476,13 +476,13 @@ class DataBaseManager:
         Retrieve all card ownership entries for a specific user (works inside cards_owned.db).
 
         Args:
-            id (int): ID of the user whose card ownership records are being queried.
+            id (int): ID of the user of who the card ownership is being queried.
 
         Returns:
-            list: A list of tuples representing the cards owned by the user.
+            list: A list of lists/tuples representing the cards owned by the user.
         """
         try:
-            # Query the CardsOwned table to retrieve all records for the given user ID
+            # Query the CardsOwned table to retrieve all records for the ID
             self.cards_owned_cursor.execute(f'''
                 SELECT * FROM CardsOwned
                 WHERE UserID = "{id}"
@@ -491,7 +491,7 @@ class DataBaseManager:
             return results  # Return the list of cards owned
 
         except Exception as e:
-            # Print an error message if an exception occurs during the query
+            # Error handling
             print(f"Error getting cards_owned by id: {e}")
             return []  # Return an empty list in case of an error
 
@@ -570,14 +570,14 @@ class DataBaseManager:
 
     def delete_card_from_cards_owned(self, user_id, card_id):
         """
-        Delete a card from the CardsOwned table (works inside cards_owned.db).
+        Delete a card from the CardsOwned table (works inside cards_owned.db)
 
         Args:
             user_id (int): ID of the user who owns the card
             card_id (int): ID of the card that is supposed to be deleted
 
         Returns:
-            bool: True if the deletion is successful, else False
+            bool: True if the deletion was successful, else False
         """
         try:
             # Get row ID of the card that is supposed to be deleted
@@ -587,7 +587,7 @@ class DataBaseManager:
             ''')
             card = self.cards_owned_cursor.fetchone()
 
-            # If no card is found, return False
+            # If no card is found return False
             if not card:
                 print(f"Card ID {card_id} is not owned by User ID {user_id}")
                 return False
@@ -610,7 +610,7 @@ class DataBaseManager:
 
     def add_marketplace_entry(self, user_id, card_id, price):
         """
-        Add an entry to the Marketplace table (works inside marketplace.db).
+        Add an entry to the Marketplace table (works inside marketplace.db)
 
         Args:
             user_id (int): ID of the user who is listing the card
@@ -618,7 +618,7 @@ class DataBaseManager:
             price (int): Price of the card being listed on the marketplace
 
         Returns:
-            bool: True if the entry is successfully added, else False
+            bool: True if the entry is successfully added else False
         """
         try:
             # Insert a new entry into the Marketplace table with the given user ID, card ID, and price
@@ -696,15 +696,15 @@ class Server:
 
     def add_entry_to_marketplace(self, user_id, card_id, price):
         """
-        Add a card to the marketplace by first removing it from the user's ownership.
+        Add a card to the marketplace and removing it from the user
 
         Args:
-            user_id (int): ID of the user listing the card on the marketplace.
-            card_id (int): ID of the card being listed.
-            price (int): Price of the card on the marketplace.
+            user_id (int): ID of the user listing the card on the marketplace
+            card_id (int): ID of the card being listed
+            price (int): Price of the card on the marketplace
 
         Returns:
-            bool: True if the card is successfully listed on the marketplace, False otherwise.
+            bool: True if the card is successfully listed on the marketplace else False
         """
         # Execute delete_card_from_cards_owned to remove the card from the user's ownership
         r1 = self.data_base_manager.delete_card_from_cards_owned(user_id, card_id)
@@ -717,14 +717,14 @@ class Server:
 
     def pull_cards(self, user_id, pack_id):
         """
-        Pull cards from a pack for a user.
+        Pull cards from a pack for a user
 
         Args:
-            user_id (int): ID of the user pulling the cards.
-            pack_id (int): ID of the pack being opened.
+            user_id (int): ID of the user pulling the cards
+            pack_id (int): ID of the pack being opened
 
         Returns:
-            list: A list of cards pulled from the pack.
+            list: A list of cards pulled from the pack
         """
         try:
             # Retrieve pack details using pack_id
@@ -754,7 +754,7 @@ class Server:
                     card = self.data_base_manager.get_random_card_by_rarity("Common")
                     cards.append(card)
 
-            # Add the pulled cards to the user's ownership
+            # Add the pulled cards to the users ownership
             for card in cards:
                 if card and card[0]:  # Ensure card data is valid before adding
                     self.data_base_manager.add_card_to_user(user_id, card[0])
