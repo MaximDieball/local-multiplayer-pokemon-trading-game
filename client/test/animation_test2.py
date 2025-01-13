@@ -1,11 +1,10 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel
-from PyQt5.QtCore import QPropertyAnimation, QEasingCurve, QRect, QTimer, QPoint
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel
+from PyQt5.QtCore import QPropertyAnimation, QEasingCurve, QRect, QTimer, QSize
 from PyQt5.QtGui import QPixmap, QMovie
-from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QGraphicsOpacityEffect
+
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, card_paths):
         super().__init__()
         self.setWindowTitle("Flip Card Animation")
         self.setGeometry(100, 100, 600, 800)
@@ -16,16 +15,15 @@ class MainWindow(QMainWindow):
         self.card_stack_label.setPixmap(self.pixmap_back.scaled(200, 300, aspectRatioMode=0))
         self.card_stack_label.setGeometry(200, 350, 200, 300)
 
+        # cards to display
+        self.card_paths = card_paths
+
         # Create and set up the card label
         self.card_label = QLabel(self)
-        self.pixmap_front = QPixmap("card1.jpg")  # New image for the front of the card
+        self.pixmap_front = None
         self.card_label.setPixmap(self.pixmap_back.scaled(200, 300, aspectRatioMode=0))
         self.card_label.setGeometry(200, 350, 200, 300)
-
-        # Create and set up the button
-        self.button = QPushButton("Flip Card", self)
-        self.button.setGeometry(250, 750, 100, 30)
-        self.button.clicked.connect(self.animate)
+        self.beginning_card_geometry = self.card_label.geometry()
 
         # Initialize the first and second animations
         self.animation1 = QPropertyAnimation(self.card_label, b"geometry")
@@ -37,20 +35,43 @@ class MainWindow(QMainWindow):
         self.animation2.setEasingCurve(QEasingCurve.InOutQuad)
 
         self.has_flipped = False  # Track if the card has flipped
+        self.animation_running = False  # Track if the animation is still playing
 
         # Create sparkle effects
         self.sparkle_label = QLabel(self)
         self.sparkle_label.lower()  # Move sparkles to the bottom layer
-        self.sparkle_label.lower()
         self.sparkle_label.setGeometry(150, 150, 400, 400)  # Adjust as needed
         self.sparkle_movie = QMovie("sparkle.gif")  # Add a sparkle GIF file
         self.sparkle_label.setMovie(self.sparkle_movie)
         self.sparkle_label.setVisible(False)
 
-    def animate(self):
-        if self.has_flipped:
-            return  # Prevent re-flipping
+    def mousePressEvent(self, event):
+        # Call `click` when the left mouse button is pressed
+        if event.button() == 1:  # Left mouse button
+            self.click()
 
+    def click(self):
+        if self.card_paths:
+            if not self.has_flipped and not self.animation_running:
+                self.animation_running = True
+                self.pixmap_front = QPixmap(self.card_paths[0])  # Get card image from list
+                self.animation()
+                self.card_paths.pop(0)
+                if not self.card_paths:
+                    self.card_stack_label.clear()
+
+            elif not self.animation_running:
+                self.reset_card()
+                self.has_flipped = False
+
+    def reset_card(self):
+        print("reset")
+        # Reset geometry to the initial position and size
+        self.card_label.setGeometry(self.beginning_card_geometry)
+        self.card_label.setPixmap(self.pixmap_back.scaled(200, 300, aspectRatioMode=0))
+        self.card_label.move(200, 350)
+
+    def animation(self):
         current_geometry = self.card_label.geometry()
 
         # Configure the first animation (shrink to zero width)
@@ -78,10 +99,11 @@ class MainWindow(QMainWindow):
         # Connect the first animation's finished signal to start the second animation
         self.animation1.finished.connect(self.start_second_animation)
 
+        # Connect lambda that sets the animation_running flag to False when animation2 finishes
+        self.animation2.finished.connect(lambda: setattr(self, 'animation_running', False))
+
         # Start the first animation
         self.animation1.start()
-
-        self.has_flipped = True  # Mark the card as flipped
 
     def start_second_animation(self):
         self.animation2.start()
@@ -95,6 +117,8 @@ class MainWindow(QMainWindow):
 
         # Hide the sparkles after a short duration
         QTimer.singleShot(2000, lambda: self.sparkle_label.setVisible(False))
+
+        self.has_flipped = True  # Mark the card as flipped
 
     def update_card_back(self, current_geometry):
         # Dynamically scale the back side of the card to match the new geometry
@@ -110,6 +134,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = MainWindow()
+    window = MainWindow(["card1.jpg", "card2.jpg", "card3.jpg"])
     window.show()
     sys.exit(app.exec_())
