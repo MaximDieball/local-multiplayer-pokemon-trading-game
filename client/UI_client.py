@@ -182,7 +182,7 @@ class Client:
         }
 
         # Local on-hand coins
-        self.local_coins = 3000
+        self.local_coins = 9999999
 
     def send_dict_as_json_to_server(self, dict_data):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -369,6 +369,19 @@ class SendCoinsDialog(QDialog):
 
     def get_data(self):
         return self.player_id_input.text(), self.amount_input.text()
+
+
+
+class CardDataDialog(QDialog):
+    def __init__(self, data):
+        super().__init__()
+        self.setWindowTitle("CardData")
+        self.setFixedSize(500, 100)
+
+        layout = QVBoxLayout()
+        data_label = QLabel(f"{data}", self)
+        layout.addWidget(data_label)
+        self.setLayout(layout)
 
 
 class SendCardsDialog(QDialog):
@@ -582,8 +595,8 @@ class OpenPacksPage(QWidget):
         self.back_button.setGeometry(9, 320, 80, 30)
         self.back_button.clicked.connect(self.switch_to_main_page_callback)
 
-    def open_pack(self, pack_id, cost): #TODO change from gpt
-        print(f"openpack({pack_id}, {cost})")
+    def open_pack(self, pack_id, cost):
+        print(f"open_pack({pack_id}, {cost})")
         client = self.main_window_ref.client
 
         # 1) Check local_coins
@@ -594,7 +607,7 @@ class OpenPacksPage(QWidget):
         # Subtract local_coins for the pack
         client.local_coins -= cost
 
-        # 2) Actually call the server
+        # 2) Call the server
         dict_data = {
             "type": "openPack",
             "user_id": client.user_data["ID"],
@@ -606,16 +619,33 @@ class OpenPacksPage(QWidget):
             print("Open pack returned no cards or an error.")
             return
 
-        # 3) Convert each card to an absolute path from "PokemonCards"
-        card_image_paths = []
+        # 3) Sort the pack by rarity: Common -> Uncommon -> Rare -> HoloRare
+        sorted_pack = []
+
+        # Each card's rarity is assumed to be at index 11, just like your original code
+        for card in server_response: #TODO seltenheit index wird sich in neuer datenbank ändern WICHTIG
+            if card[11] == "Common":
+                sorted_pack.append(card)
         for card in server_response:
-            # Suppose card[1] is the Name, e.g. "Pikachu"
+            if card[11] == "Uncommon":
+                sorted_pack.append(card)
+        for card in server_response:
+            if card[11] == "Rare":
+                sorted_pack.append(card)
+        for card in server_response:
+            if card[11] == "HoloRare":
+                sorted_pack.append(card)
+
+        # 4) Build absolute paths for each sorted card
+        card_image_paths = []
+        for card in sorted_pack:
+            # Suppose card[1] is the Name, e.g. "Abra"
             card_name = card[1]
-            # Build the absolute path. "PokemonCards/Pikachu.jpeg"
+            # Build absolute path to PokemonCards/<Name>.jpeg
             card_abs_path = resource_path("PokemonCards", f"{card_name}.jpeg")
             card_image_paths.append(card_abs_path)
 
-        # 4) Launch the animation window
+        # 5) Launch the animation window with the sorted card images
         self.anim_window = PackAnimationWindow(card_image_paths)
         self.anim_window.show()
 
@@ -624,42 +654,77 @@ class OpenPacksPage(QWidget):
 
 
 # ------------------------------ InventoryPage ------------------------------ #
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QScrollArea, QWidget, QGridLayout, QPushButton, QMessageBox
+from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtGui import QPixmap
+
+class CardLabel(QLabel):
+    """
+    Card Label für inventory
+    """
+    def __init__(self, card_info, pixmap, parent=None):
+        super().__init__(parent)
+        self.card_info = card_info
+        self.setPixmap(pixmap)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            dialog = CardDataDialog(self.card_info)
+            if dialog.exec_() == QDialog.Accepted:
+                print("Dialog yes yes yes")
+            else:
+                print("Dialog error")
+        super().mousePressEvent(event)
+
 class InventoryPage(QWidget):
-    def __init__(self, switch_to_main_page_callback):
+    def __init__(self, switch_to_main_page_callback, card_data):
+        """
+        comment lol
+        """
         super().__init__()
         self.switch_to_main_page_callback = switch_to_main_page_callback
-        self.init_ui()
-
-    def init_ui(self):
         self.setFixedSize(width, height - 80)
 
-        layout = QVBoxLayout(self)
-        self.setLayout(layout)
+        main_layout = QVBoxLayout(self)
+        self.setLayout(main_layout)
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        layout.addWidget(scroll_area)
+        main_layout.addWidget(scroll_area)
 
         container = QWidget()
         grid_layout = QGridLayout(container)
         container.setLayout(grid_layout)
 
-        # Just placeholders
-        for i in range(30):
-            label = QLabel(f"item {i+1}")
-            label.setStyleSheet(
-                "border: 1px solid gray; background: white; min-width:80px; min-height:80px;"
-                "margin: 5px; "
+        # For each card in 'card_data', we create a CardLabel storing full info
+        for card_index, card_info in enumerate(card_data):
+            # card_info might be like [21, "Abra", "Psychic", ...]
+            card_name = card_info[1]
+
+            # Build the path to PokemonCards/<Name>.jpeg, then scale it
+            pixmap_path = resource_path("PokemonCards", f"{card_name}.jpeg")
+            pixmap = QPixmap(pixmap_path).scaled(119, 149, Qt.KeepAspectRatio)
+
+            # Create a custom CardLabel that stores the entire card_info
+            card_label = CardLabel(card_info, pixmap)
+            # Enforce a fixed size
+            card_label.setMinimumSize(120, 160)
+            card_label.setMaximumSize(120, 160)
+            card_label.setStyleSheet(
+                "border: 1px solid gray; background: white; margin: 5px;"
             )
-            row = i // 5
-            col = i % 5
-            grid_layout.addWidget(label, row, col)
+
+            row = card_index // 5
+            col = card_index % 5
+            grid_layout.addWidget(card_label, row, col)
 
         scroll_area.setWidget(container)
 
+        # Back button
         self.back_button = QPushButton("<---")
         self.back_button.clicked.connect(self.switch_to_main_page_callback)
-        layout.addWidget(self.back_button)
+        main_layout.addWidget(self.back_button)
+
 
 
 # ------------------------------ WagerSearchPage ------------------------------ #
@@ -727,7 +792,7 @@ class MainWidget(QWidget):
         )
         self.wager_page = WagerSearchPage(self.show_main_page)
         self.open_packs_page = OpenPacksPage(self.show_main_page, self.main_window_ref)
-        self.inventory_page = InventoryPage(self.show_main_page)
+        self.inventory_page = InventoryPage(self.show_main_page, ["Abra", "Abra", "Abra", "Abra", "Abra", "Abra", "Abra"])
 
         self.center_stack.addWidget(self.main_page)       # index 0
         self.center_stack.addWidget(self.wager_page)      # index 1
@@ -794,6 +859,36 @@ class MainWidget(QWidget):
         self.center_stack.setCurrentWidget(self.open_packs_page)
 
     def show_inventory_page(self):
+        """
+        Removes the old InventoryPage, fetches inventory from the server,
+        builds a new InventoryPage with the list of card names,
+        and displays it in the QStackedWidget.
+        """
+        # get user id
+        user_id = self.main_window_ref.client.user_data["ID"]
+        if user_id is None:
+            print("No user logged in, cannot fetch inventory.")
+            return
+
+        # get cards owned from server
+        dict_data = {
+            "type": "inventory",
+            "user_id": user_id
+        }
+        server_response = self.main_window_ref.client.send_dict_as_json_to_server(dict_data)
+        if not server_response:
+            print("No inventory data returned or an error occurred.")
+            return
+
+        # remove old page
+        index = self.center_stack.indexOf(self.inventory_page)
+        if index != -1:
+            self.center_stack.removeWidget(self.inventory_page)
+            self.inventory_page.deleteLater()
+
+        # add new page
+        self.inventory_page = InventoryPage(self.show_main_page, server_response)
+        self.center_stack.addWidget(self.inventory_page)
         self.center_stack.setCurrentWidget(self.inventory_page)
 
 
