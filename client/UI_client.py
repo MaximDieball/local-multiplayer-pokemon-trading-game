@@ -181,8 +181,21 @@ class Client:
             "RankPoints": None
         }
 
+        # Deck for wagers / 6 cards
+        self.deck = []
+
         # Local on-hand coins
         self.local_coins = 9999999
+
+    def remove_card_from_deck(self, card_name):
+        if card_name in self.deck:
+            self.deck.remove(card_name)
+
+    def add_card_to_deck(self, card_name):
+        if card_name not in self.deck and len(self.deck) < 6:
+            self.deck.append(card_name)
+        else:
+            print("ERROR: deck is too long or card is already in deck")
 
     def send_dict_as_json_to_server(self, dict_data):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -373,15 +386,30 @@ class SendCoinsDialog(QDialog):
 
 
 class CardDataDialog(QDialog):
-    def __init__(self, data):
+    def __init__(self, data, client):
         super().__init__()
         self.setWindowTitle("CardData")
         self.setFixedSize(500, 100)
 
         layout = QVBoxLayout()
-        data_label = QLabel(f"{data}", self)
+        data_label = QLabel(f"{data}\n{client.deck}", self)
         layout.addWidget(data_label)
         self.setLayout(layout)
+
+        if data[1] in client.deck:  # check if name of card is in deck
+            remove_from_deck_button = QPushButton("remove from deck", self)
+            remove_from_deck_button.clicked.connect(
+                lambda: client.remove_card_from_deck(data[1])
+            )
+            layout.addWidget(remove_from_deck_button)
+
+        else:
+            add_to_deck_button = QPushButton("add to deck", self)
+            add_to_deck_button.clicked.connect(
+                lambda: client.add_card_to_deck(data[1])
+            )
+            layout.addWidget(add_to_deck_button)
+
 
 
 class SendCardsDialog(QDialog):
@@ -662,31 +690,36 @@ class CardLabel(QLabel):
     """
     Card Label für inventory
     """
-    def __init__(self, card_info, pixmap, parent=None):
+    def __init__(self, card_info, client, pixmap, parent=None):
         super().__init__(parent)
         self.card_info = card_info
         self.setPixmap(pixmap)
+        self.client = client
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            dialog = CardDataDialog(self.card_info)
+            dialog = CardDataDialog(self.card_info, self.client)
             if dialog.exec_() == QDialog.Accepted:
                 print("Dialog yes yes yes")
             else:
                 print("Dialog error")
         super().mousePressEvent(event)
 
+
 class InventoryPage(QWidget):
-    def __init__(self, switch_to_main_page_callback, card_data):
+    def __init__(self, switch_to_main_page_callback, card_data, client):
         """
         comment lol
         """
         super().__init__()
+        self.client = client
+
         self.switch_to_main_page_callback = switch_to_main_page_callback
         self.setFixedSize(width, height - 80)
 
         main_layout = QVBoxLayout(self)
         self.setLayout(main_layout)
+
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -706,7 +739,7 @@ class InventoryPage(QWidget):
             pixmap = QPixmap(pixmap_path).scaled(119, 149, Qt.KeepAspectRatio)
 
             # Create a custom CardLabel that stores the entire card_info
-            card_label = CardLabel(card_info, pixmap)
+            card_label = CardLabel(card_info, client, pixmap)
             # Enforce a fixed size
             card_label.setMinimumSize(120, 160)
             card_label.setMaximumSize(120, 160)
@@ -764,12 +797,12 @@ class MainWidget(QWidget):
       - A TopBar
       - A QStackedWidget with pages (MainPage, OpenPacksPage, InventoryPage, WagerSearchPage)
     """
-    def __init__(self, main_window_ref):
+    def __init__(self, main_window_ref, client):
         super().__init__()
         self.main_window_ref = main_window_ref
-        self.init_ui()
+        self.client = client
 
-    def init_ui(self):
+        # innit UI
         self.setFixedSize(width, height)
 
         layout = QVBoxLayout(self)
@@ -792,7 +825,7 @@ class MainWidget(QWidget):
         )
         self.wager_page = WagerSearchPage(self.show_main_page)
         self.open_packs_page = OpenPacksPage(self.show_main_page, self.main_window_ref)
-        self.inventory_page = InventoryPage(self.show_main_page, ["Abra", "Abra", "Abra", "Abra", "Abra", "Abra", "Abra"])
+        self.inventory_page = InventoryPage(self.show_main_page, [], self.client)
 
         self.center_stack.addWidget(self.main_page)       # index 0
         self.center_stack.addWidget(self.wager_page)      # index 1
@@ -887,7 +920,7 @@ class MainWidget(QWidget):
             self.inventory_page.deleteLater()
 
         # add new page
-        self.inventory_page = InventoryPage(self.show_main_page, server_response)
+        self.inventory_page = InventoryPage(self.show_main_page, server_response, self.client)
         self.center_stack.addWidget(self.inventory_page)
         self.center_stack.setCurrentWidget(self.inventory_page)
 
@@ -999,12 +1032,13 @@ class MainWindow(QWidget):
         self.setGeometry(100, 100, width, height)
         self.setFixedSize(width, height)
 
+        # client / manages connection to server
         self.client = Client()
 
         self.stacked_widget = QStackedWidget(self)
 
         self.login_register_page = LoginRegisterUI(self)
-        self.main_widget_page = MainWidget(self)
+        self.main_widget_page = MainWidget(self, self.client)
 
         self.stacked_widget.addWidget(self.login_register_page)  # index 0
         self.stacked_widget.addWidget(self.main_widget_page)      # index 1
