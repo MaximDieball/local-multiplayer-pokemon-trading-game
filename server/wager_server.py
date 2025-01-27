@@ -23,19 +23,23 @@ class WagerManager:
         If `enemy_id` is searching for `player_id`, start a wager.
         Otherwise, add a new search.
         """
-        for search in self.searches:
-            if search["enemy_id"] == player_id:
-                # found a match
-                self.start_wager(player1_id=search["player_id"], player2_id=player_id)
-                self.searches.remove(search)     # delete search after match was found
-                return True
-        # not found -> add a search entry
-        self.searches.append({
-            "player_id": player_id,
-            "enemy_id": enemy_id
-        })
-        return False
-
+        print(f"START SEARCH [{player_id}, {enemy_id}]")
+        try:
+            for search in self.searches:
+                if search["enemy_id"] == player_id:
+                    # found a match
+                    self.start_wager(player1_id=search["player_id"], player2_id=player_id)
+                    self.searches.remove(search)     # delete search after match was found
+                    return True
+            # not found -> add a search entry
+            self.searches.append({
+                "player_id": player_id,
+                "enemy_id": enemy_id
+            })
+            return False
+        except Exception as e:
+            print(f"[Error in search]: {e}")
+            
     def stop_search(self, player_id):
         for search in self.searches:
             if search["player_id"] == player_id:
@@ -45,19 +49,25 @@ class WagerManager:
         """
         Inform both players that a wager started, store it in self.wagers.
         """
-        start_msg = {
-            "Start": True,
-            "Player1": player1_id,
-            "Player2": player2_id
-        }
-        self.send(player1_id, start_msg)
-        self.send(player2_id, start_msg)
-
-        self.wagers.append({
-            "player1_id": player1_id,
-            "player2_id": player2_id,
-            "starters": [None, None]
-        })
+        print(f"START WAGER [{player1_id}, {player2_id}]")
+        try:
+            start_msg = {
+                "type": "start",
+                "Start": True,
+                "Player1": player1_id,
+                "Player2": player2_id
+            }
+            self.send(player1_id, start_msg)
+            self.send(player2_id, start_msg)
+    
+            self.wagers.append({
+                "player1_id": player1_id,
+                "player2_id": player2_id,
+                "starters": [None, None]
+            })
+        except Exception as e:
+            print(f"[Error in start_wager]: {e}")
+            
 
     def choose_beginner(self, wager):
         """
@@ -67,9 +77,9 @@ class WagerManager:
         p2 = wager["player2_id"]
         beginner = random.choice([1, 2])
         if beginner == 1:
-            self.send(p1, {"EnemyMove": None})
+            self.send(p1, {"type": "move", "EnemyMove": None})
         elif beginner == 2:
-            self.send(p2, {"EnemyMove": None})
+            self.send(p2, {"type": "move", "EnemyMove": None})
 
     def set_starter(self, player_id, starter_name):
         """
@@ -77,26 +87,29 @@ class WagerManager:
         Once both players have set their starter, send each side the enemy starter.
         Then choose who begins.
         """
-        for wager in self.wagers:
-            p1 = wager["player1_id"]
-            p2 = wager["player2_id"]
-            if p1 == player_id:
-                wager["starters"][0] = starter_name
-                if wager["starters"][0] and wager["starters"][1]:
-                    self.send(p1, {"EnemyStarter": wager["starters"][1]})
-                    self.send(p2, {"EnemyStarter": wager["starters"][0]})
-                    self.choose_beginner(wager)
-                return True
-            if p2 == player_id:
-                wager["starters"][1] = starter_name
-                if wager["starters"][0] and wager["starters"][1]:
-                    self.send(p1, {"EnemyStarter": wager["starters"][1]})
-                    self.send(p2, {"EnemyStarter": wager["starters"][0]})
-                    self.choose_beginner(wager)
-                return True
-        return False
+        try:
+            for wager in self.wagers:
+                p1 = wager["player1_id"]
+                p2 = wager["player2_id"]
+                if p1 == player_id:
+                    wager["starters"][0] = starter_name
+                    if wager["starters"][0] and wager["starters"][1]:
+                        self.send(p1, {"type": "enemyStarter", "EnemyStarter": wager["starters"][1]})
+                        self.send(p2, {"type": "enemyStarter", "EnemyStarter": wager["starters"][0]})
+                        self.choose_beginner(wager)
+                    return True
+                if p2 == player_id:
+                    wager["starters"][1] = starter_name
+                    if wager["starters"][0] and wager["starters"][1]:
+                        self.send(p1, {"type": "enemyStarter", "EnemyStarter": wager["starters"][1]})
+                        self.send(p2, {"type": "enemyStarter", "EnemyStarter": wager["starters"][0]})
+                        self.choose_beginner(wager)
+                    return True
+            return False
+        except Exception as e:
+            print(f"[Error in set_starter]: {e}")
 
-    def do_move(self, player_id, move_name):
+    def move(self, player_id, move_name):
         """
         A player has made a move (like an attack).
         Send that move to the opponent as {"EnemyMove": move_name}.
@@ -106,15 +119,15 @@ class WagerManager:
             p2 = w["player2_id"]
             if p1 == player_id:
                 # send to p2
-                self.send(p2, {"EnemyMove": move_name})
+                self.send(p2, {"type": "move", "EnemyMove": move_name})
                 return True
             elif p2 == player_id:
                 # send to p1
-                self.send(p1, {"EnemyMove": move_name})
+                self.send(p1, {"type": "move", "EnemyMove": move_name})
                 return True
         return False
 
-    def do_defeat(self, loser_id):
+    def defeat(self, loser_id):
         """
         A player has conceded or lost.
         The other side wins => send them {"win": True}.
@@ -124,11 +137,11 @@ class WagerManager:
             p2 = w["player2_id"]
             if p1 == loser_id:
                 # p2 is winner
-                self.send(p2, {"win": True})
+                self.send(p2, {"type": "matchResult", "win": True})
                 return True
             elif p2 == loser_id:
                 # p1 is winner
-                self.send(p1, {"win": True})
+                self.send(p1, {"type": "matchResult", "win": True})
                 return True
         return False
 
@@ -177,12 +190,12 @@ class WagerServer:
                 print(f"RECEIVED from {addr}: {json_data}")
 
                 match packet_type:
-                    case "hello":
+                    case "connect":
                         # example: {"type":"hello","player_id":123}
                         player_id = json_data["player_id"]
                         self.connected_players[player_id] = conn
                         # optionally send a greeting
-                        self.send_to_player(player_id, {"hello":"ok"})
+                        self.send_to_player(player_id, {"type": "connect", "hello":"ok"})
 
                     case "search":
                         # {"type":"search","player_id":X,"enemy_id":Y}
@@ -200,12 +213,12 @@ class WagerServer:
                         # {"type":"move","player_id":X,"move":"..."}
                         pid = json_data["player_id"]
                         move_name = json_data.get("move")
-                        self.wager_manager.do_move(pid, move_name)
+                        self.wager_manager.move(pid, move_name)
 
                     case "defeat":
                         # {"type":"defeat","player_id":X}
                         pid = json_data["player_id"]
-                        self.wager_manager.do_defeat(pid)
+                        self.wager_manager.defeat(pid)
 
                     case "stopSearch":
                         player_id = json_data["player_id"]

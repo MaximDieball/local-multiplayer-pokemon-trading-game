@@ -4,6 +4,8 @@ import socket
 import json
 import zlib
 import random
+import threading
+from PyQt5.QtCore import pyqtSignal, QObject
 
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QMainWindow, QLabel, QLineEdit, QPushButton,
@@ -11,7 +13,7 @@ from PyQt5.QtWidgets import (
     QGridLayout, QScrollArea
 )
 from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QEasingCurve, QTimer, QSize
-from PyQt5.QtGui import QPixmap, QMovie, QTransform, QImage
+from PyQt5.QtGui import QPixmap, QMovie, QTransform, QImage, QIcon
 
 
 ##############################################################################
@@ -480,7 +482,8 @@ class TopBar(QWidget):
 ################################################################################
 
 class MainPage(QWidget):
-    def __init__(self, switch_to_wager_page_callback, switch_to_open_packs_page_callback, switch_to_inventory_page_callback):
+    def __init__(self, switch_to_wager_page_callback, switch_to_open_packs_page_callback,
+                 switch_to_inventory_page_callback):
         super().__init__()
         self.switch_to_wager_page_callback = switch_to_wager_page_callback
         self.switch_to_open_packs_page_callback = switch_to_open_packs_page_callback
@@ -489,14 +492,6 @@ class MainPage(QWidget):
 
     def init_ui(self):
         self.setFixedSize(800, 420)
-
-        # 1) Add background label
-        bg_path = resource_path("images", "grey_background.png")
-        self.bg_label = QLabel(self)
-        pix = QPixmap(bg_path).scaled(self.width(), self.height(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        self.bg_label.setPixmap(pix)
-        self.bg_label.setGeometry(0, 0, self.width(), self.height())
-        self.bg_label.lower()  # behind everything
 
         # Pokeball
         pokeball_path = resource_path("images", "pokeball.png")
@@ -577,14 +572,6 @@ class OpenPacksPage(QWidget):
     def init_ui(self):
         self.setFixedSize(800, 420)
 
-        # 1) background label
-        bg_path = resource_path("images", "grey_background.png")
-        self.bg_label = QLabel(self)
-        pix = QPixmap(bg_path).scaled(self.width(), self.height(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        self.bg_label.setPixmap(pix)
-        self.bg_label.setGeometry(0, 0, self.width(), self.height())
-        self.bg_label.lower()
-
         self.pack1_button = QPushButton("Default Pack\n200 Coins", self)
         self.pack1_button.setGeometry(200, 80, 120, 200)
         self.pack1_button.clicked.connect(lambda: self.open_pack(1, 200))
@@ -640,6 +627,7 @@ class OpenPacksPage(QWidget):
         self.anim_window.show()
         self.main_window_ref.main_widget_page.top_bar.update_display(c)
 
+
 ################################################################################
 # CardLabel
 ################################################################################
@@ -669,6 +657,7 @@ class CardLabel(QLabel):
             dlg = CardDataDialog(self.card_info, self.client, self.inventory_page)
             dlg.exec_()
         super().mousePressEvent(event)
+
 
 ################################################################################
 # InventoryPage
@@ -744,21 +733,14 @@ class InventoryPage(QWidget):
 ################################################################################
 
 class WagerSearchPage(QWidget):
-    def __init__(self, switch_to_main_page_callback):
+    def __init__(self, switch_to_main_page_callback, wager_client):
         super().__init__()
         self.switch_to_main_page_callback = switch_to_main_page_callback
         self.init_ui()
+        self.wager_client = wager_client
 
     def init_ui(self):
         self.setFixedSize(800, 420)
-
-        # background
-        self.bg_label = QLabel(self)
-        bg_path = resource_path("images", "grey_background.png")
-        px = QPixmap(bg_path).scaled(self.width(), self.height(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        self.bg_label.setPixmap(px)
-        self.bg_label.setGeometry(0, 0, self.width(), self.height())
-        self.bg_label.lower()
 
         self.enemy_label = QLabel("Enemy Player ID:", self)
         self.enemy_label.setGeometry(289, 120, 100, 25)
@@ -774,10 +756,21 @@ class WagerSearchPage(QWidget):
 
         self.search_button = QPushButton("Search", self)
         self.search_button.setGeometry(363, 270, 80, 30)
+        self.search_button.clicked.connect(self.start_search)
 
         self.back_button = QPushButton("<---", self)
         self.back_button.setGeometry(9, 320, 80, 30)
-        self.back_button.clicked.connect(self.switch_to_main_page_callback)
+        self.back_button.clicked.connect(self.stop_search_and_go_back_to_main_page)
+
+    def start_search(self):
+        self.wager_client.connect()
+        self.wager_client.stop_search()
+
+        self.wager_client.search(int(self.enemy_input.text()))
+
+    def stop_search_and_go_back_to_main_page(self):
+        self.wager_client.stop_search()
+        self.switch_to_main_page_callback()
 
 
 ################################################################################
@@ -789,6 +782,10 @@ class MainWidget(QWidget):
         super().__init__()
         self.main_window_ref = main_window_ref
         self.client = client
+        # create wager_client and set signals to open the wager window
+        self.wager_client = WagerClient(self.client)
+        self.wager_client.startSignal.connect(self.show_wager_window)
+
         self.setFixedSize(800, 500)
 
         layout = QVBoxLayout(self)
@@ -806,7 +803,7 @@ class MainWidget(QWidget):
             self.show_open_packs_page,
             self.show_inventory_page
         )
-        self.wager_page = WagerSearchPage(self.show_main_page)
+        self.wager_page = WagerSearchPage(self.show_main_page, self.wager_client)
         self.open_packs_page = OpenPacksPage(self.show_main_page, self.main_window_ref)
         self.inventory_page = InventoryPage(self.show_main_page, [], self.client)
 
@@ -816,6 +813,15 @@ class MainWidget(QWidget):
         self.center_stack.addWidget(self.inventory_page)
 
         self.center_stack.setCurrentWidget(self.main_page)
+
+    def show_wager_window(self):
+        print("show_wager_window")
+        # Create the window and pass in the WagerClient + deck
+        self.wager_window = WagerWindow(self.wager_client, self.client.deck)
+        self.wager_window.show()
+        print("trying to connect starter signal")
+        # Connect the WagerClient's enemyStarterSignal to a slot in WagerWindow
+        self.wager_client.enemyStarterSignal.connect(self.wager_window.on_enemy_starter)
 
     def show_withdraw_dialog(self):
         dlg = WithdrawDialog()
@@ -867,6 +873,7 @@ class MainWidget(QWidget):
         self.center_stack.setCurrentWidget(self.main_page)
 
     def show_wager_page(self):
+        # if len(self.client.deck) == 6:
         self.center_stack.setCurrentWidget(self.wager_page)
 
     def show_open_packs_page(self):
@@ -907,14 +914,6 @@ class LoginRegisterUI(QWidget):
     def init_ui(self):
         w, h = 800, 400
         self.setFixedSize(w, h)
-
-        # background
-        self.bg_label = QLabel(self)
-        bg_path = resource_path("images", "grey_background.png")
-        pix = QPixmap(bg_path).scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        self.bg_label.setPixmap(pix)
-        self.bg_label.setGeometry(0, 0, w, h)
-        self.bg_label.lower()
 
         half_width = w // 2
         left_x = half_width - 220
@@ -1026,10 +1025,291 @@ class MainWindow(QWidget):
         self.stacked_widget.setCurrentIndex(1)
 
 
+################################################################################
+# WagerWindow
+################################################################################
+
+class WagerWindow(QMainWindow):
+    def __init__(self, wager_client, deck, parent=None):
+        super().__init__(parent)
+        self.deck = deck  # store the player's 6 cards
+        self.setWindowTitle("Wager Window")
+        self.setGeometry(100, 100, 900, 600)
+        self.wager_client = wager_client
+
+        # 1) Exit button in top-left
+        self.exit_button = QPushButton("<--", self)
+        self.exit_button.setGeometry(QRect(10, 10, 50, 30))
+        # self.exit_button.clicked.connect(...)  # connect to some exit logic
+
+        # 2) Energy icon + label on left side
+        # Example icon: resource_path("energy.png") if you have one
+        self.energy_icon_label = QLabel(self)
+        energy_pixmap = QPixmap(resource_path("energy.png"))
+        self.energy_icon_label.setPixmap(energy_pixmap.scaled(32, 32, Qt.KeepAspectRatio))
+        self.energy_icon_label.setGeometry(QRect(10, 70, 32, 32))
+
+        self.energy_label = QLabel("3 Energie", self)
+        self.energy_label.setGeometry(QRect(110, 250, 100, 32))
+
+        # 3) Player's currently used Pokemon card (middle-lower area)
+        #    We'll put it near the bottom, around x=250, y=300
+        self.player_type_label = QLabel("Water", self)
+        self.player_type_label.setGeometry(QRect(350, 250, 60, 20))  # left of the card
+
+        self.player_card_button = QPushButton("", self)
+        self.player_card_button.setGeometry(QRect(400, 250, 100, 150))
+
+        # top-right of that card = HP label
+        self.player_hp_label = QLabel("99 HP", self)
+        self.player_hp_label.setGeometry(QRect(520, 250, 50, 20))
+
+        # 4) Enemy's Pokemon card (middle-upper area)
+        #    We'll put it near the top, around x=400, y=50
+        self.enemy_type_label = QLabel("Water", self)
+        self.enemy_type_label.setGeometry(QRect(350, 50, 60, 20))  # left of the card
+
+        self.enemy_card_button = QPushButton("", self)
+        self.enemy_card_button.setGeometry(QRect(400, 50, 100, 150))
+
+        self.enemy_hp_label = QLabel("99 HP", self)
+        self.enemy_hp_label.setGeometry(QRect(520, 250, 50, 20))
+
+        # 5) Attack 1 & Attack 2 buttons, to the right of the player's card
+        #    For example at x=380,y=300 and x=380,y=350
+        self.attack1_button = QPushButton("Attack1   2-Energie   25-Damage   X1", self)
+        self.attack1_button.setGeometry(QRect(550, 250, 250, 50))
+
+        self.attack2_button = QPushButton("Attack2   2-Energie   25-Damage   X1", self)
+        self.attack2_button.setGeometry(QRect(550, 320, 250, 50))
+
+        # 6) At the bottom: 6 Buttons for Pokemon cards the user can choose
+        #    We'll place them horizontally across the bottom
+        self.bottom_card_buttons = []
+        start_x = 100
+        start_y = 400
+        button_width = 100
+        button_height = 150
+        spacing = 20
+
+        for i in range(6):
+            # Create a button
+            btn = QPushButton(self)
+            x = start_x + i * (button_width + spacing)
+            btn.setGeometry(QRect(x, start_y, button_width, button_height))
+            # If this index is valid for the deck, show the card image (or name)
+            if i < len(self.deck):
+                card_name = self.deck[i]
+                print(card_name)
+                # Load card image from your "PokemonCards" folder
+                card_path = resource_path("PokemonCards", f"{card_name}.jpeg")
+                pix = QPixmap(card_path).scaled(button_width, button_height, Qt.KeepAspectRatio)
+                print(card_path)
+
+                icon = QIcon(pix)
+                btn.setIcon(icon)
+                btn.setIconSize(pix.rect().size())
+            else:
+                # If for some reason deck is shorter than 6, label as "Empty":
+                btn.setText("Empty")
+
+            self.bottom_card_buttons.append(btn)
+
+        # =========================
+        # PICK A RANDOM STARTER
+        # =========================
+        print("pick a random starter")
+        if self.deck:
+            self.chosen_starter = random.choice(self.deck)
+            print("chosen starter: ", self.chosen_starter)
+            # Show chosen starter on player_card_button
+            chosen_path = resource_path("PokemonCards", f"{self.chosen_starter}.jpeg")
+            print("chosen_path ", chosen_path)
+            chosen_pix = QPixmap(chosen_path).scaled(100, 150, Qt.KeepAspectRatio)
+            self.player_card_button.setIcon(QIcon(chosen_pix))
+            self.player_card_button.setIconSize(QSize(100, 150))
+            print("trying to set_starter")
+            # Notify the server of our starter
+            self.wager_client.set_starter(self.chosen_starter)
+        else:
+            self.chosen_starter = None
+
+        print("finished WagerWindow setup")
+        self.show()
+
+    def on_enemy_starter(self, enemy_starter_name: str):
+        """
+        Called when the server notifies us of the opponent's starter.
+        We'll update the Enemy Card button.
+        """
+        card_path = resource_path("PokemonCards", f"{enemy_starter_name}.jpeg")
+        pix = QPixmap(card_path).scaled(100, 150, Qt.KeepAspectRatio)
+        self.enemy_card_button.setIcon(QIcon(pix))
+        self.enemy_card_button.setIconSize(QSize(100, 150))
+        print(f"Enemy starter is now shown: {enemy_starter_name}")
+        print(card_path)
+
+
+################################################################################
+# WagerClient
+################################################################################
+
+class WagerClient(QObject):
+    startSignal = pyqtSignal()
+    enemyStarterSignal = pyqtSignal(str)  # <-- add this signal for enemy starter
+
+    def __init__(self, client, host="127.0.0.1", port=27777):
+        super().__init__()
+        self.host = host
+        self.port = port
+        self.sock = None
+        self.client = client
+
+    def connect(self):
+        """Connect to the Wager server and start a read thread."""
+        try:
+            if not self.sock:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.connect((self.host, self.port))
+                print(f"Connected to server at {self.host}:{self.port}")
+
+                # Start a background thread to read server messages
+                t = threading.Thread(target=self.read_loop, daemon=True)
+                t.start()
+
+                # share player id / for the server to connect player id and connection
+                packet = {"type": "connect", "player_id": self.client.user_data["ID"]}
+                self.send_dict_as_json_to_wager_server(packet)
+
+        except Exception as e:
+            print(f"[Error connecting]: {e}")
+
+    def read_loop(self):
+        while True:
+            data = self.sock.recv(4096)
+            if not data:
+                print("Server closed the connection.")
+                break
+
+            decompressed = zlib.decompress(data).decode("utf-8")
+            packet = json.loads(decompressed)
+            print(f"\n[SERVER MESSAGE]: {packet}")
+
+            match packet["type"]:
+                case "start":
+                    print("start")
+                    self.stop_search()
+                    self.startSignal.emit()
+
+                case "enemyStarter":
+                    # The server tells us the opponent's chosen starter
+                    enemy_starter = packet["EnemyStarter"]
+                    print(f"Enemy starter is {enemy_starter}")
+                    self.enemyStarterSignal.emit(enemy_starter)
+
+    def set_starter(self, starter_name: str):
+        """Send our chosen starter to the server."""
+        print(starter_name)
+        print(self.client.user_data["ID"])
+        packet = {
+            "type": "setStarter",
+            "player_id": self.client.user_data["ID"],
+            "name": starter_name
+        }
+        print(packet)
+        self.send_dict_as_json_to_wager_server(packet)
+
+    def send_dict_as_json_to_wager_server(self, dict_data):
+        """Send a JSON packet to the server, compressed."""
+        try:
+            raw = json.dumps(dict_data).encode("utf-8")
+            compressed = zlib.compress(raw)
+            self.sock.sendall(compressed)
+        except Exception as e:
+            print(f"[Error sending packet]: {e}")
+
+    def run_cli(self):
+        """Run a simple CLI loop using match for commands."""
+        print("Commands:\n"
+              "  hello <player_id>\n"
+              "  search <enemy_id>\n"
+              "  setStarter <name>\n"
+              "  move <move_name>\n"
+              "  defeat\n"
+              "  quit\n")
+        while True:
+            cmd = input("command:").strip()
+            if not cmd:
+                continue
+            parts = cmd.split(maxsplit=1)
+            main_cmd = parts[0].lower()
+            argument = ""
+            if len(parts) > 1:
+                argument = parts[1]
+
+            match main_cmd:
+                case "quit":
+                    print("Quitting client.")
+                    break
+                case "connect":
+                    if argument.isdigit():
+                        self.player_id = int(argument)
+                        packet = {"type": "hello", "player_id": self.player_id}
+                        self.send_packet(packet)
+                    else:
+                        print("Usage: hello <player_id>")
+                case "search":
+                    if not self.player_id:
+                        print("Need 'hello' first.")
+                    else:
+                        if argument.isdigit():
+                            enemy_id = int(argument)
+                            packet = {"type": "search", "player_id": self.player_id, "enemy_id": enemy_id}
+                            self.send_packet(packet)
+                        else:
+                            print("Usage: search <enemy_id>")
+                case "setstarter":
+                    if not self.player_id:
+                        print("Need 'hello' first.")
+                    else:
+                        if argument:
+                            packet = {"type": "setStarter", "player_id": self.player_id, "name": argument}
+                            self.send_packet(packet)
+                        else:
+                            print("Usage: setStarter <name>")
+                case "move":
+                    if not self.player_id:
+                        print("Need 'hello' first.")
+                    else:
+                        if argument:
+                            packet = {"type": "move", "player_id": self.player_id, "move": argument}
+                            self.send_packet(packet)
+                        else:
+                            print("Usage: move <move_name>")
+                case "defeat":
+                    if not self.player_id:
+                        print("Need 'hello' first.")
+                    else:
+                        packet = {"type": "defeat", "player_id": self.player_id}
+                        self.send_packet(packet)
+                case _:
+                    print("Unknown or malformed command.")
+        self.sock.close()
+        print("Client socket closed.")
+
+    def search(self, enemy_id):
+        player_id = self.client.user_data["ID"]
+        packet = {"type": "search", "player_id": player_id, "enemy_id": enemy_id}
+        self.send_dict_as_json_to_wager_server(packet)
+
+    def stop_search(self):
+        player_id = self.client.user_data["ID"]
+        packet = {"type": "stopSearch", "player_id": player_id}
+        self.send_dict_as_json_to_wager_server(packet)
+
+
 def main():
     app = QApplication(sys.argv)
-    # We do NOT apply a stylesheet for backgrounds.
-    # The background is provided by a label in each page.
 
     main_window = MainWindow()
     main_window.show()

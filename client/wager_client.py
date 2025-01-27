@@ -12,14 +12,16 @@ class WagerClient:
 
     def connect(self):
         """Connect to the Wager server and start a read thread."""
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.host, self.port))
-        print(f"Connected to server at {self.host}:{self.port}")
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((self.host, self.port))
+            print(f"Connected to server at {self.host}:{self.port}")
 
-        # Start a background thread to read server messages
-        t = threading.Thread(target=self.read_loop, daemon=True)
-        t.start()
-
+            # Start a background thread to read server messages
+            t = threading.Thread(target=self.read_loop, daemon=True)
+            t.start()
+        except Exception as e:
+            print(f"[Error connecting]: {e}")
     def read_loop(self):
         """Continuously receive and print server messages."""
         while True:
