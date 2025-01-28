@@ -4,7 +4,7 @@ import zlib
 import json
 import os
 import random
-
+import time
 
 class WagerManager:
     searches = []  # list of dicts: {"player_id":..., "enemy_id":...}
@@ -94,22 +94,28 @@ class WagerManager:
                 if p1 == player_id:
                     wager["starters"][0] = starter_name
                     if wager["starters"][0] and wager["starters"][1]:
+                        time.sleep(1)   # work around to fix race condition
                         self.send(p1, {"type": "enemyStarter", "EnemyStarter": wager["starters"][1]})
                         self.send(p2, {"type": "enemyStarter", "EnemyStarter": wager["starters"][0]})
+                        wager["starters"][0] = None
+                        wager["starters"][1] = None
                         self.choose_beginner(wager)
                     return True
                 if p2 == player_id:
                     wager["starters"][1] = starter_name
                     if wager["starters"][0] and wager["starters"][1]:
+                        time.sleep(1)
                         self.send(p1, {"type": "enemyStarter", "EnemyStarter": wager["starters"][1]})
                         self.send(p2, {"type": "enemyStarter", "EnemyStarter": wager["starters"][0]})
+                        wager["starters"][0] = None
+                        wager["starters"][1] = None
                         self.choose_beginner(wager)
                     return True
             return False
         except Exception as e:
             print(f"[Error in set_starter]: {e}")
 
-    def move(self, player_id, move_name):
+    def move(self, player_id, json_data):
         """
         A player has made a move (like an attack).
         Send that move to the opponent as {"EnemyMove": move_name}.
@@ -119,11 +125,11 @@ class WagerManager:
             p2 = w["player2_id"]
             if p1 == player_id:
                 # send to p2
-                self.send(p2, {"type": "move", "EnemyMove": move_name})
+                self.send(p2, json_data)
                 return True
             elif p2 == player_id:
                 # send to p1
-                self.send(p1, {"type": "move", "EnemyMove": move_name})
+                self.send(p1, json_data)
                 return True
         return False
 
@@ -162,6 +168,7 @@ class WagerServer:
             return
         try:
             data = json.dumps(message).encode("utf-8")
+            print(f"SEND to id[{player_id}]: {data}")
             compressed = zlib.compress(data)
             conn.sendall(compressed)
         except Exception as e:
@@ -212,8 +219,7 @@ class WagerServer:
                     case "move":
                         # {"type":"move","player_id":X,"move":"..."}
                         pid = json_data["player_id"]
-                        move_name = json_data.get("move")
-                        self.wager_manager.move(pid, move_name)
+                        self.wager_manager.move(pid, json_data)
 
                     case "defeat":
                         # {"type":"defeat","player_id":X}
