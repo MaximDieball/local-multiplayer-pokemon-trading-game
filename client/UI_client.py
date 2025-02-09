@@ -182,7 +182,7 @@ class PackAnimationWindow(QMainWindow):
 ################################################################################
 
 class Client:
-    def __init__(self, host='127.0.0.1', port=17777, wager_port=27777):
+    def __init__(self, host='192.168.42.1', port=17777, wager_port=27777):
         self.host = host
         self.port = port
         self.wager_port = wager_port
@@ -1139,7 +1139,7 @@ class MainWidget(QWidget):
             QMessageBox.warning(
                 self,
                 "Error",
-                "Failed to retrieve inventory data.",
+                "Failed to retrieve inventory data. \n OPEN PACKS FIRST",
                 QMessageBox.Ok
             )
             return
@@ -2022,7 +2022,7 @@ class WagerClient(QObject):
     moveSignal = pyqtSignal(dict)  # Signal carrying move packets from the server
     matchResultSignal = pyqtSignal(bool)  # Signal indicating the match result (win or loss)
 
-    def __init__(self, client, host="127.0.0.1", port=27777):
+    def __init__(self, client, host="192.168.42.1", port=27777):
         super().__init__()
         self.host = host
         self.port = port
