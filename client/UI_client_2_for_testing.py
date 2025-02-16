@@ -182,13 +182,13 @@ class PackAnimationWindow(QMainWindow):
 ################################################################################
 
 class Client:
-    def __init__(self, host='127.0.0.1', port=17777, wager_port=27777):
+    def __init__(self, host='192.168.42.1', port=17777, wager_port=27777):
         self.host = host
         self.port = port
         self.wager_port = wager_port
         self.user_data = {"ID": None, "Username": None, "Balance": None, "RankPoints": None}
         self.deck = []
-        self.local_coins = 10
+        self.local_coins = 20
 
     def set_host(self, new_host):
         """
@@ -958,7 +958,7 @@ class MainWidget(QWidget):
         self.client = client
 
         # Initialize WagerClient and connect signals
-        self.wager_client = WagerClient(self.client)
+        self.wager_client = WagerClient(self.client, self.client.host)
         self.wager_client.startSignal.connect(self.show_wager_window)
         self.wager_client.matchResultSignal.connect(self.handle_match_result)  # Updated signal
 
@@ -1139,7 +1139,7 @@ class MainWidget(QWidget):
             QMessageBox.warning(
                 self,
                 "Error",
-                "Failed to retrieve inventory data.",
+                "Failed to retrieve inventory data. \n OPEN PACKS FIRST",
                 QMessageBox.Ok
             )
             return
@@ -1929,7 +1929,6 @@ class WagerWindow(QMainWindow):
                             self.player_hp_label.setText("000")
                         if len(self.deck) < 1:
                             self.defeat()
-                            return
             # Opponent's turn ends, mark it as the player's turn
             print("WagerWindow: Opponent's move processed. It's now your turn.")
             self.my_turn = True
@@ -1940,10 +1939,6 @@ class WagerWindow(QMainWindow):
 
     def defeat(self):
         print("defeat")
-        """
-        Handles the scenario where the player has been defeated.
-        Notifies the server and closes the wager window.
-        """
         packet = {"type": "defeat", "player_id": self.client.user_data["ID"]}
         self.wager_client.send_dict_as_json_to_wager_server(packet)
         QMessageBox.information(
@@ -1952,8 +1947,10 @@ class WagerWindow(QMainWindow):
             "All your Pokémon have fainted. You have been defeated!",
             QMessageBox.Ok
         )
+        self.close()  # Ensure the window is closed properly
 
     def handle_match_result(self, win):
+        print("win")
         """
         Handles the match result based on the server's response.
         Displays appropriate messages and closes the wager window.
@@ -2022,7 +2019,7 @@ class WagerClient(QObject):
     moveSignal = pyqtSignal(dict)  # Signal carrying move packets from the server
     matchResultSignal = pyqtSignal(bool)  # Signal indicating the match result (win or loss)
 
-    def __init__(self, client, host="127.0.0.1", port=27777):
+    def __init__(self, client, host="192.168.42.1", port=27777):
         super().__init__()
         self.host = host
         self.port = port
@@ -2034,6 +2031,8 @@ class WagerClient(QObject):
         Connects to the Wager server and starts the message-reading thread.
         Sends a connection packet with the player's ID.
         """
+        self.host = self.client.host
+        print("new host fix ", self.host)
         try:
             if not self.sock:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -2092,6 +2091,12 @@ class WagerClient(QObject):
             except (zlib.error, json.JSONDecodeError) as e:
                 print(f"[Error decoding message]: {e}")
                 break  # Optionally handle reconnection or cleanup here
+
+            except ConnectionResetError as e:
+                print(f"[ConnectionResetError]: {e}")
+                print(f"Match Result - Win: {True}")
+                self.matchResultSignal.emit(True)
+                break
 
     def set_starter(self, starter_name: str):
         """
